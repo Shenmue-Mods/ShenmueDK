@@ -1,3 +1,0 @@
-namespace shendk { namespace utils { 
-
-} }
