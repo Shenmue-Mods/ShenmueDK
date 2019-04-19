@@ -1,16 +1,14 @@
 cmake_minimum_required (VERSION 3.8.0)
+set(CMAKE_VERBOSE_MAKEFILE on)
 
-project (ShenmueDK CXX DESCRIPTION "Shenmue I & II HD Modding SDK for C++")
+project (ShenmueDK LANGUAGES CXX DESCRIPTION "Shenmue I & II HD Modding SDK for C++")
 
 set (SHENDK_VERSION_MAJOR 0)
 set (SHENDK_VERSION_MINOR 1)
 set (SHENDK_VERSION_BUILD 0)
 
-#include(version.cmake)
-
-set(CMAKE_VERBOSE_MAKEFILE on)
-
-set(CMAKE_CXX_STANDARD 11)
+# c++ stuff
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_DEBUG_POSTFIX d)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	message("GCC")
@@ -24,13 +22,20 @@ else()
 	message(FATAL_ERROR "No support for this compiler yet!")
 endif()
 
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src)
+# options
+option(BUILD_TESTS "Build test programs" OFF)
+
+# dependencies
+find_package(jsoncpp REQUIRED)
+if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
+    find_library(CXX_FILESYSTEM_SUPPORT NAMES stdc++fs)
+endif()
+
+# sources and stuff
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h)
-file(GLOB_RECURSE HEADERS include/*.h)
-
-
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src)
+file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
+file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
 
 # shendk library
 add_library(ShenmueDK ${SOURCES} ${HEADERS})
@@ -38,26 +43,18 @@ target_include_directories(ShenmueDK
     PUBLIC include
     PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
 )
+target_link_libraries(${PROJECT_NAME} jsoncpp)
+target_link_libraries(${PROJECT_NAME} stdc++fs)
 
-# unit tests
-configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-execute_process(COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}" .
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download" )
-execute_process(COMMAND "${CMAKE_COMMAND}" --build .
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/googletest-download" )
-
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-add_subdirectory("${CMAKE_BINARY_DIR}/googletest-src"
-                 "${CMAKE_BINARY_DIR}/googletest-build")
-
-include_directories("${gtest_SOURCE_DIR}/include"
-				    "${gmock_SOURCE_DIR}/include")
-
-file(GLOB_RECURSE TEST_SOURCES tests/UTest/*.cpp tests/UTest/*.h)
-add_executable(shendk_test ${TEST_SOURCES})
-target_link_libraries(shendk_test PRIVATE ${PROJECT_NAME})
-target_link_libraries(shendk_test PRIVATE ${CXX_FILESYSTEM_SUPPORT})
-target_link_libraries(shendk_test PRIVATE gtest)
-target_link_libraries(shendk_test PRIVATE gmock)
-target_include_directories(shendk_test PRIVATE include PRIVATE src)
+# unit tests (gtest)
+if (BUILD_TESTS)
+  find_package(GTest REQUIRED)
+  include_directories(${GTEST_INCLUDE_DIRS})
+  file(GLOB_RECURSE TEST_SOURCES tests/UTest/*.cpp tests/UTest/*.h)
+  add_executable(shendk_test ${TEST_SOURCES})
+  target_link_libraries(shendk_test PRIVATE ${PROJECT_NAME})
+  target_link_libraries(shendk_test PRIVATE ${CXX_FILESYSTEM_SUPPORT})
+  target_link_libraries(shendk_test PRIVATE gtest)
+  target_link_libraries(shendk_test PRIVATE gmock)
+  target_include_directories(shendk_test PRIVATE include PRIVATE src)
+endif()
