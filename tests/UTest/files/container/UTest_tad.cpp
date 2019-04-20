@@ -5,7 +5,7 @@
 
 namespace {
 
-	TEST(tad, read_write)
+    TEST(TAD, read_write)
 	{
 
         /*shendk::HashDB& db = shendk::HashDB::getInstance();

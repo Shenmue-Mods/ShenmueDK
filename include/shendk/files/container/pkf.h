@@ -37,7 +37,7 @@ struct PKF : File {
 
     PKF::Header header;
     std::vector<PKF::Entry> entries;
-    std::map<PKF::Entry, char*> entriesData;
+    std::map<PKF::Entry*, char*> entriesData;
 
 protected:
     virtual void _read(std::ifstream& stream) {
@@ -82,7 +82,7 @@ protected:
             uint32_t bufferSize = entry.size - sizeof(PKF::Entry);
             char* buffer = new char[bufferSize];
             stream.read(buffer, bufferSize);
-            entriesData.insert({entry, buffer});
+            entriesData.insert({&entry, buffer});
         }
     }
 
@@ -94,7 +94,7 @@ protected:
 
         // write entries
         for (auto& entry : entries) {
-            char* buffer = entriesData[entry];
+            char* buffer = entriesData[&entry];
             stream.write(reinterpret_cast<char*>(&entry), sizeof(PKF::Entry));
             stream.write(buffer, entry.size - sizeof(PKF::Entry));
         }

@@ -31,22 +31,14 @@ struct IPAC : File {
     IPAC() = default;
 
     IPAC(const std::string& filepath) {
-        File::read(filepath);
+        read(filepath);
     }
 
     ~IPAC() {}
 
     IPAC::Header header;
     std::vector<IPAC::Entry> entries;
-    std::map<IPAC::Entry, char*> entriesData;
-
-    void read(std::ifstream& stream) {
-        _read(stream);
-    }
-
-    void write(std::ofstream& stream) {
-        _write(stream);
-    }
+    std::map<IPAC::Entry*, char*> entriesData;
 
 protected:
     virtual void _read(std::ifstream& stream) {
@@ -68,7 +60,7 @@ protected:
             stream.seekg(baseOffset + entry.fileOffset, std::ios::beg);
             char* buffer = new char[entry.fileSize];
             stream.read(buffer, entry.fileSize);
-            entriesData.insert({entry, buffer});
+            entriesData.insert({&entry, buffer});
         }
     }
 
@@ -95,7 +87,7 @@ protected:
         // write entry data
         for (auto& entry : entries) {
             stream.seekp(baseOffset + entry.fileOffset, std::ios::beg);
-            char* buffer = entriesData[entry];
+            char* buffer = entriesData[&entry];
             stream.write(buffer, entry.fileSize);
         }
 

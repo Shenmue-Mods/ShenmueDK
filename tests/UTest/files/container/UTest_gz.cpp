@@ -6,7 +6,7 @@
 
 namespace {
 
-TEST(gz, read_write)
+TEST(GZ, read_write)
 {
     std::ifstream file("H:\\gzip.gz", std::ios::binary);
 
@@ -15,7 +15,7 @@ TEST(gz, read_write)
     }*/
 
     uint64_t bufferSize;
-    if (inflate(file, bufferSize) == nullptr) {
+    if (shendk::GZ::inflateStream(file, bufferSize) == nullptr) {
         FAIL();
     }
     std::cout << "Decompressed Size: " << bufferSize << std::endl;
