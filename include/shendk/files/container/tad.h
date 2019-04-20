@@ -41,7 +41,6 @@ namespace shendk {
 			uint32_t pad44;
 			uint32_t fileCount;
 			uint32_t pad52;
-			uint32_t fileCount2;
 		};
 
         TAD() = default;
@@ -58,8 +57,8 @@ namespace shendk {
             fs::create_directories(dir);
 
 			std::ifstream inStream;
-			std::ofstream outStream;
-			inStream.open(tacFilepath);
+            std::ofstream outStream;
+            inStream.open(tacFilepath, std::ios::binary);
             HashDB& db = HashDB::getInstance();
             uint32_t idx = 0;
             for (auto& entry : entries) {
@@ -89,6 +88,7 @@ namespace shendk {
 	protected:
         virtual void _read(std::ifstream& stream) {
             stream.read(reinterpret_cast<char*>(&header), sizeof(TAD::Header));
+            stream.seekg(4, std::ios::cur); // skip redundant file count
             for (uint32_t i = 0; i < header.fileCount; i++) {
                 TAD::Entry entry;
                 stream.read(reinterpret_cast<char*>(&entry), sizeof(TAD::Entry));
@@ -99,8 +99,9 @@ namespace shendk {
         virtual void _write(std::ofstream& stream) {
             header.fileCount = static_cast<uint32_t>(entries.size());
 			header.headerChecksum = 0;
-			header.headerChecksum = MurmurHash2::hashData(reinterpret_cast<uint8_t*>(&header), sizeof(TAD::Header));
+            header.headerChecksum = MurmurHash2::hashData(reinterpret_cast<uint8_t*>(&header), sizeof(TAD::Header));
 			stream.write(reinterpret_cast<char*>(&header), sizeof(TAD::Header));
+            stream.write(reinterpret_cast<char*>(&header.fileCount), sizeof(uint32_t));
             for (uint32_t i = 0; i < header.fileCount; i++) {
 				stream.write(reinterpret_cast<char*>(&entries[i]), sizeof(TAD::Entry));
 			}

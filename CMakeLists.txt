@@ -27,6 +27,7 @@ option(BUILD_TESTS "Build test programs" OFF)
 
 # dependencies
 find_package(jsoncpp REQUIRED)
+find_package(zlib REQUIRED)
 if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
     find_library(CXX_FILESYSTEM_SUPPORT NAMES stdc++fs)
 endif()
@@ -45,6 +46,7 @@ target_include_directories(ShenmueDK
 )
 target_link_libraries(${PROJECT_NAME} jsoncpp)
 target_link_libraries(${PROJECT_NAME} stdc++fs)
+target_link_libraries(${PROJECT_NAME} z)
 
 # unit tests (gtest)
 if (BUILD_TESTS)
