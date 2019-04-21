@@ -15,11 +15,11 @@ struct PVR : File {
     ~PVR() {}
 
 protected:
-    virtual void _read(std::ifstream& stream) {
+    virtual void _read(std::istream& stream) {
 
     }
 
-    virtual void _write(std::ofstream& stream) {
+    virtual void _write(std::ostream& stream) {
 
     }
 

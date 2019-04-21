@@ -8,6 +8,7 @@
 #include "shendk/files/file.h"
 #include "shendk/files/container/ipac.h"
 #include "shendk/files/container/gz.h"
+#include "shendk/utils/memstream.h"
 
 namespace fs = std::filesystem;
 
@@ -34,23 +35,27 @@ struct PKS : File {
     IPAC ipac;
 
 protected:
-    virtual void _read(std::ifstream& stream) {
+    virtual void _read(std::istream& stream) {
+        int64_t baseOffset = stream.tellg();
+
+        std::istream* _stream = &stream;
 
         if (GZ::testGzip(stream)) {
             uint64_t bufferSize;
             char* decompressed = GZ::inflateStream(stream, bufferSize);
-            stream.close();
             if (decompressed == nullptr) {
                 return;
             }
-            stream.open(decompressed, std::ios::binary);
+            _stream = new imstream(decompressed, bufferSize);
+        } else {
+            _stream->seekg(baseOffset, std::ios::beg);
         }
 
-        stream.read(reinterpret_cast<char*>(&header), sizeof(PKS::Header));
-        ipac.read(stream);
+        _stream->read(reinterpret_cast<char*>(&header), sizeof(PKS::Header));
+        ipac.read(*_stream);
     }
 
-    virtual void _write(std::ofstream& stream) {
+    virtual void _write(std::ostream& stream) {
         stream.write(reinterpret_cast<char*>(&header), sizeof(PKS::Header));
         ipac.write(stream);
     }

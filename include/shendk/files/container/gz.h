@@ -24,7 +24,7 @@ struct GZ : File {
 
     ~GZ() {}
 
-    static bool testGzip(std::ifstream& stream) {
+    static bool testGzip(std::istream& stream) {
         uint8_t* buffer = new uint8_t[2];
         stream.read(reinterpret_cast<char*>(buffer), 2);
         stream.seekg(0, std::ios::beg);
@@ -45,7 +45,7 @@ struct GZ : File {
         return true;
     }
 
-    static char* inflateStream(std::ifstream& inStream, uint64_t& bufferSize) {
+    static char* inflateStream(std::istream& inStream, uint64_t& bufferSize) {
 
         // retrieve input stream size
         inStream.seekg(0, std::ios::end);

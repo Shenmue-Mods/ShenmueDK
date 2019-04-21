@@ -86,7 +86,7 @@ namespace shendk {
 		std::vector<TAD::Entry> entries;
 
 	protected:
-        virtual void _read(std::ifstream& stream) {
+        virtual void _read(std::istream& stream) {
             stream.read(reinterpret_cast<char*>(&header), sizeof(TAD::Header));
             stream.seekg(4, std::ios::cur); // skip redundant file count
             for (uint32_t i = 0; i < header.fileCount; i++) {
@@ -96,7 +96,7 @@ namespace shendk {
 			}
 		}
 
-        virtual void _write(std::ofstream& stream) {
+        virtual void _write(std::ostream& stream) {
             header.fileCount = static_cast<uint32_t>(entries.size());
 			header.headerChecksum = 0;
             header.headerChecksum = MurmurHash2::hashData(reinterpret_cast<uint8_t*>(&header), sizeof(TAD::Header));

@@ -41,7 +41,7 @@ struct IPAC : File {
     std::map<IPAC::Entry*, char*> entriesData;
 
 protected:
-    virtual void _read(std::ifstream& stream) {
+    virtual void _read(std::istream& stream) {
         int64_t baseOffset = stream.tellg();
 
         // read header
@@ -64,7 +64,7 @@ protected:
         }
     }
 
-    virtual void _write(std::ofstream& stream) {
+    virtual void _write(std::ostream& stream) {
         int64_t baseOffset = stream.tellp();
 
         // calculate offsets

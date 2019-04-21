@@ -8,6 +8,7 @@
 
 #include "shendk/files/file.h"
 #include "shendk/files/container/gz.h"
+#include "shendk/utils/memstream.h"
 
 namespace fs = std::filesystem;
 
@@ -40,53 +41,54 @@ struct PKF : File {
     std::map<PKF::Entry*, char*> entriesData;
 
 protected:
-    virtual void _read(std::ifstream& stream) {
+    virtual void _read(std::istream& stream) {
         int64_t baseOffset = stream.tellg();
+
+        std::istream* _stream = &stream;
 
         // decompress if necessary
         if (GZ::testGzip(stream)) {
             uint64_t bufferSize;
             char* decompressed = GZ::inflateStream(stream, bufferSize);
-            stream.close();
             if (decompressed == nullptr) {
                 return;
             }
-            stream.open(decompressed, std::ios::binary);
+            _stream = new imstream(decompressed, bufferSize);
         } else {
-            stream.seekg(baseOffset, std::ios::beg);
+            _stream->seekg(baseOffset, std::ios::beg);
         }
 
         // read header
-        stream.read(reinterpret_cast<char*>(&header), sizeof(PKF::Header));
+        _stream->read(reinterpret_cast<char*>(&header), sizeof(PKF::Header));
 
         // check for DUMY entry
         PKF::Entry dummyEntry;
-        stream.read(reinterpret_cast<char*>(&dummyEntry), sizeof(PKF::Entry));
+        _stream->read(reinterpret_cast<char*>(&dummyEntry), sizeof(PKF::Entry));
         if (strncmp(dummyEntry.token, "DUMY", 4) == 0) {
-            stream.seekg(dummyEntry.size - sizeof(PKF::Entry), std::ios::cur);
+            _stream->seekg(dummyEntry.size - sizeof(PKF::Entry), std::ios::cur);
         } else {
-            stream.seekg(stream.tellg() - static_cast<int64_t>(sizeof(PKF::Entry)), std::ios::cur);
+            _stream->seekg(_stream->tellg() - static_cast<int64_t>(sizeof(PKF::Entry)), std::ios::cur);
         }
 
         // read entries
         for (uint32_t i = 0; i < header.fileCount; i++) {
-            if (stream.eof()) break;
+            if (_stream->eof()) break;
 
             // read entry
             PKF::Entry entry;
-            stream.read(reinterpret_cast<char*>(&entry), sizeof(PKF::Entry));
+            _stream->read(reinterpret_cast<char*>(&entry), sizeof(PKF::Entry));
             if (strcmp(entry.token, "") == 0) continue; // fix for broken pkf files
             entries.push_back(entry);
 
             // read entry data
             uint32_t bufferSize = entry.size - sizeof(PKF::Entry);
             char* buffer = new char[bufferSize];
-            stream.read(buffer, bufferSize);
+            _stream->read(buffer, bufferSize);
             entriesData.insert({&entry, buffer});
         }
     }
 
-    virtual void _write(std::ofstream& stream) {
+    virtual void _write(std::ostream& stream) {
         int64_t baseOffset = stream.tellp();
 
         // skip header

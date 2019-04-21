@@ -43,11 +43,11 @@ struct AFS : File {
     std::map<AFS::OffsetEntry*, char*> entriesData;
 
 protected:
-    const uint32_t padding = 0x0800;
+    const uint32_t padding = 0x0800; // TODO: make padding adjustable
     const uint32_t maxPadding = 0x0008000;
     const uint32_t fileCountMagic = 1016; // TODO: fix this magic number
 
-    virtual void _read(std::ifstream& stream) {
+    virtual void _read(std::istream& stream) {
         int64_t baseOffset = stream.tellg();
 
         // read header
@@ -91,7 +91,7 @@ protected:
         }
     }
 
-    virtual void _write(std::ofstream& stream) {
+    virtual void _write(std::ostream& stream) {
         int64_t baseOffset = stream.tellp();
 
         // calculate entry data start offset

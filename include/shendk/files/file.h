@@ -30,7 +30,7 @@ namespace shendk {
             }
         }
 
-        void read(std::ifstream& stream) {
+        void read(std::istream& stream) {
             _read(stream);
         }
 
@@ -49,14 +49,14 @@ namespace shendk {
             }
         }
 
-        void write(std::ofstream& stream) {
+        void write(std::ostream& stream) {
             _write(stream);
         }
 
 
 	protected:
         virtual bool _isValid();
-        virtual void _read(std::ifstream& stream) = 0;
-        virtual void _write(std::ofstream& stream) = 0;
+        virtual void _read(std::istream& stream) = 0;
+        virtual void _write(std::ostream& stream) = 0;
 	};
 }
