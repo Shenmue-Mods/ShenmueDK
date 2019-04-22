@@ -7,6 +7,7 @@
 namespace shendk {
 
 struct AFS : File {
+	unsigned int signature = 5457473;
 
     struct Header {
         uint32_t signature;
@@ -53,6 +54,9 @@ protected:
         // read header
         stream.read(reinterpret_cast<char*>(&header), sizeof(AFS::Header));
 
+		if (!isValid(header.signature))
+			throw new std::runtime_error("Invalid signature for AFS file!\n");
+
         // read dictionary
         for (uint32_t i = 0; i < header.fileCount; i++) {
             AFS::OffsetEntry entry;
@@ -69,8 +73,8 @@ protected:
             uint32_t offset = curPos + maxPadding - (curPos % padding);
             stream.seekg(baseOffset + offset - 8, std::ios::beg);
         }
-        stream.read(reinterpret_cast<char*>(metaOffset), sizeof(uint32_t));
-        stream.read(reinterpret_cast<char*>(metaSize), sizeof(uint32_t));
+        //stream.read(reinterpret_cast<char*>(metaOffset), sizeof(uint32_t));
+        //stream.read(reinterpret_cast<char*>(metaSize), sizeof(uint32_t));
 
         // read entry meta
         if (metaOffset != 0) {
@@ -140,6 +144,12 @@ protected:
         }
     }
 
+	virtual bool _isValid(unsigned int signature)
+	{
+		if (signature != AFS::signature)
+			return false;
+		else return true;
+	}
 };
 
 }

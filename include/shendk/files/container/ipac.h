@@ -13,6 +13,7 @@ namespace fs = std::filesystem;
 namespace shendk {
 
 struct IPAC : File {
+	unsigned int signature = 1128353865;
 
     struct Header {
         uint32_t signature;
@@ -46,6 +47,9 @@ protected:
 
         // read header
         stream.read(reinterpret_cast<char*>(&header), sizeof(IPAC::Header));
+
+		if (!isValid(header.signature))
+			throw new std::runtime_error("Invalid signature for IPAC file!\n");
 
         // read dictionary
         stream.seekg(header.dictionaryOffset, std::ios::beg);
@@ -97,5 +101,12 @@ protected:
             stream.write(reinterpret_cast<char*>(&entry), sizeof(IPAC::Entry));
         }
     }
+
+	virtual bool _isValid(unsigned int signature)
+	{
+		if (signature != IPAC::signature)
+			return false;
+		else return true;
+	}
 };
 }

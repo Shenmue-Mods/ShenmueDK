@@ -53,9 +53,16 @@ namespace shendk {
             _write(stream);
         }
 
+		/**
+		* @brief Verifies a file's signature
+		* @param signature Signature to verify
+		**/
+		bool isValid(unsigned int signature) {
+			return _isValid(signature);
+		}
 
 	protected:
-        virtual bool _isValid();
+        virtual bool _isValid(unsigned int signature) = 0;
         virtual void _read(std::istream& stream) = 0;
         virtual void _write(std::ostream& stream) = 0;
 	};
