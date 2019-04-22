@@ -1,17 +1,21 @@
 #pragma once
 
 #include <stdint.h>
+#include <iostream>
+#include <filesystem>
+
+#include "shendk/files/file.h"
 
 namespace shendk {
 
-struct MT5 {
+struct MT5 : File {
+	unsigned int signature = 1296257608;
 
     struct Header {
-        char signature[4];
-        uint32_t texdOffset;
-        uint32_t firstNodeOffset;
+		char signature[4];
+		uint32_t texdOffset;
+		uint32_t firstNodeOffset;
     };
-
 
     struct Node {
         uint32_t id;
@@ -32,6 +36,39 @@ struct MT5 {
         uint32_t unknown;
     };
 
-};
+	MT5() = default;
 
+	MT5(const std::string& filepath) {
+		read(filepath);
+	}
+
+	MT5::Header header;
+
+protected:
+	virtual void _read(std::istream& stream) {
+		int64_t baseOffset = stream.tellg();
+		
+		std::istream* _stream = &stream;
+
+		_stream->seekg(baseOffset, std::ios::beg);
+
+		// Read header..
+		_stream->read(reinterpret_cast<char*>(&header), sizeof(MT5::Header));
+		if (!isValid(header.signature))
+			throw new std::runtime_error("Invalid signature for MT5 file!\n");
+
+	}
+
+	virtual void _write(std::ostream& stream) {
+		stream.write(reinterpret_cast<char*>(&header), sizeof(MT5::Header));
+	}
+
+	virtual bool _isValid(unsigned char signature)
+	{
+		if (this->signature != signature)
+			return false;
+		return true;
+	}
+
+};
 }

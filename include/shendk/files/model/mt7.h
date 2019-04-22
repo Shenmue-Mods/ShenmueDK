@@ -2,12 +2,14 @@
 
 #include <stdint.h>
 
+#include "shendk/files/file.h"
+
 namespace shendk {
 
-struct MT7 {
+struct MT7 : File {
 
     struct Header {
-        char signature[4];
+        uint32_t signature;
         uint32_t size;
         uint32_t firstNodeOffset;
         uint32_t textureCount;
@@ -31,6 +33,33 @@ struct MT7 {
         uint32_t parentNodeOffset;
     };
 
+	MT7() = default;
+
+	MT7(const std::string& filepath) {
+		read(filepath);
+	}
+
+	MT7::Header header;
+protected:
+	virtual void _read(std::istream& stream) {
+		int64_t baseOffset = stream.tellg();
+
+		std::istream* _stream = &stream;
+
+		_stream->seekg(baseOffset, std::ios::beg);
+
+		// Read header..
+		_stream->read(reinterpret_cast<char*>(&header), sizeof(MT7::Header));
+	}
+
+	virtual void _write(std::ostream& stream) {
+		stream.write(reinterpret_cast<char*>(&header), sizeof(MT7::Header));
+	}
+
+	virtual bool _isValid(unsigned char signature)
+	{
+		
+	}
 };
 
 }
