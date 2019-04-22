@@ -18,14 +18,28 @@ struct PixelCodec {
     virtual void decodePixel(uint8_t* src, uint64_t srcIndex, uint8_t* dst, uint64_t dstIndex) = 0;
     virtual void encodePixel(uint8_t* src, uint64_t srcIndex, uint8_t* dst, uint64_t dstIndex) = 0;
 
+    virtual ~PixelCodec() {}
+
     uint8_t* decodePalette(uint8_t* src, uint64_t srcIndex, uint32_t numEntries) {
-        // TODO: implement
-        return nullptr;
+
+        uint8_t* palette = new uint8_t[numEntries * 4];
+        uint32_t _bpp = bpp();
+        for (uint32_t i = 0; i < numEntries; i++) {
+            decodePixel(src, srcIndex + (i * (_bpp >> 3)), palette + (i * 4), 0);
+        }
+        return palette;
     }
 
     uint8_t* encodePalette(uint8_t* palette, uint32_t numEntries) {
-        // TODO: implement
-        return nullptr;
+        uint32_t _bpp = bpp();
+        uint8_t* destination = new uint8_t[numEntries * (_bpp >> 3)];
+        uint64_t destinationIndex = 0;
+        for (uint32_t i = 0; i < numEntries; i++)
+        {
+            encodePixel(palette + i * 4, 0, destination, destinationIndex);
+            destinationIndex += (_bpp >> 3);
+        }
+        return destination;
     }
 };
 
