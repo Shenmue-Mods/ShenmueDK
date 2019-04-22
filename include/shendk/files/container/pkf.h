@@ -16,6 +16,8 @@ namespace shendk {
 
 struct PKF : File {
 
+	unsigned int signature = 1179337040;
+
     struct Header {
         uint32_t signature;
         uint32_t contentSize;
@@ -60,6 +62,8 @@ protected:
 
         // read header
         _stream->read(reinterpret_cast<char*>(&header), sizeof(PKF::Header));
+		if (!isValid(header.signature))
+			throw new std::runtime_error("Invalid signature for PKF file!\n");
 
         // check for DUMY entry
         PKF::Entry dummyEntry;
@@ -109,5 +113,12 @@ protected:
         stream.seekp(baseOffset, std::ios::beg);
         stream.write(reinterpret_cast<char*>(&header), sizeof(PKF::Header));
     }
+
+	virtual bool _isValid(unsigned int signature)
+	{
+		if (signature != PKF::signature)
+			return false;
+		else return true;
+	}
 };
 }

@@ -73,8 +73,8 @@ protected:
             uint32_t offset = curPos + maxPadding - (curPos % padding);
             stream.seekg(baseOffset + offset - 8, std::ios::beg);
         }
-        //stream.read(reinterpret_cast<char*>(metaOffset), sizeof(uint32_t));
-        //stream.read(reinterpret_cast<char*>(metaSize), sizeof(uint32_t));
+        stream.read(reinterpret_cast<char*>(&metaOffset), sizeof(uint32_t));
+        stream.read(reinterpret_cast<char*>(&metaSize), sizeof(uint32_t));
 
         // read entry meta
         if (metaOffset != 0) {

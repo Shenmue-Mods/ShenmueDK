@@ -15,6 +15,7 @@ namespace fs = std::filesystem;
 namespace shendk {
 
 struct PKS : File {
+	unsigned int signature = 1397440848;
 
     struct Header {
         uint32_t signature;
@@ -52,6 +53,9 @@ protected:
         }
 
         _stream->read(reinterpret_cast<char*>(&header), sizeof(PKS::Header));
+		if (!isValid(header.signature))
+			throw new std::runtime_error("Invalid signature for PKS file!\n");
+
         ipac.read(*_stream);
     }
 
@@ -59,5 +63,12 @@ protected:
         stream.write(reinterpret_cast<char*>(&header), sizeof(PKS::Header));
         ipac.write(stream);
     }
+
+	virtual bool _isValid(unsigned int signature)
+	{
+		if (signature != PKS::signature)
+			return false;
+		else return true;
+	}
 };
 }
