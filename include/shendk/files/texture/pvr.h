@@ -133,6 +133,12 @@ protected:
                 mipmapOffsets.push_back(0);
             }
 
+            // decode palette if available
+            if (paletteOffset != -1) {
+                stream.seekg(baseOffset + paletteOffset, std::ios::beg);
+                dataCodec->setPalette(stream, paletteEntries);
+            }
+
             // decode mipmaps
             mipmaps.clear();
             if (dataCodec->hasMipmaps()) {
@@ -140,16 +146,16 @@ protected:
                 {
                     stream.seekg(baseOffset + dataOffset + mipmapOffsets[i], std::ios::beg);
                     uint8_t* pixels = dataCodec->decode(stream, size, size, pixelCodec);
-                    ArgbImage mipmap(size, size);
-                    memcpy(mipmap.getDataPtr(), pixels, mipmap.size());
+                    std::shared_ptr<ArgbImage> mipmap(new ArgbImage(size, size));
+                    memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
                     mipmaps.push_back(mipmap);
                     delete[] pixels;
                 }
             } else {
                 stream.seekg(baseOffset + dataOffset + mipmapOffsets[0], std::ios::beg);
                 uint8_t* pixels = dataCodec->decode(stream, header.width, header.height, pixelCodec);
-                ArgbImage mipmap(header.width, header.height);
-                memcpy(mipmap.getDataPtr(), pixels, mipmap.size());
+                std::shared_ptr<ArgbImage> mipmap(new ArgbImage(header.width, header.height));
+                memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
                 mipmaps.push_back(mipmap);
                 delete[] pixels;
             }
@@ -169,6 +175,11 @@ protected:
         int64_t baseOffset = stream.tellp();
     }
 
+    virtual bool _isValid(unsigned int signature)
+    {
+        // TODO: implement
+        return false;
+    }
 };
 
 }

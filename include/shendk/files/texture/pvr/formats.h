@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <map>
 
 namespace shendk {
 namespace pvr {
@@ -57,6 +58,48 @@ enum class CompressionFormat
 {
     NONE,
     RLE
+};
+
+std::map<PixelFormat, std::string> PixelFormatStrings {
+    {PixelFormat::ARGB1555, "ARGB1555"},
+    {PixelFormat::RGB565, "RGB565"},
+    {PixelFormat::ARGB4444, "ARGB4444"},
+    {PixelFormat::YUV422, "YUV422"},
+    {PixelFormat::BUMP88, "BUMP88"},
+    {PixelFormat::RGB555, "RGB555"},
+    {PixelFormat::ARGB8888, "ARGB8888"},
+    {PixelFormat::DDS_DXT1_RGB24, "DDS_DXT1_RGB24"},
+    {PixelFormat::DDS_DXT3_RGBA32, "DDS_DXT3_RGBA32"},
+    {PixelFormat::UNKNOWN, "UNKNOWN"}
+};
+
+std::map<DataFormat, std::string> DataFormatStrings {
+    {DataFormat::SQUARE_TWIDDLED, "SQUARE_TWIDDLED"},
+    {DataFormat::SQUARE_TWIDDLED_MIPMAP, "SQUARE_TWIDDLED_MIPMAP"},
+    {DataFormat::VECTOR_QUANTIZATION, "VECTOR_QUANTIZATION"},
+    {DataFormat::VECTOR_QUANTIZATION_MIPMAP, "VECTOR_QUANTIZATION_MIPMAP"},
+    {DataFormat::PALETTIZE_4BIT, "PALETTIZE_4BIT"},
+    {DataFormat::PALETTIZE_4BIT_MIPMAP, "PALETTIZE_4BIT_MIPMAP"},
+    {DataFormat::PALETTIZE_8BIT, "PALETTIZE_8BIT"},
+    {DataFormat::PALETTIZE_8BIT_MIPMAP, "PALETTIZE_8BIT_MIPMAP"},
+    {DataFormat::RECTANGLE, "RECTANGLE"},
+    {DataFormat::RECTANGLE_MIPMAP, "RECTANGLE_MIPMAP"},
+    {DataFormat::RECTANGLE_STRIDE, "RECTANGLE_STRIDE"},
+    {DataFormat::RECTANGLE_STRIDE_MIPMAP, "RECTANGLE_STRIDE_MIPMAP"},
+    {DataFormat::RECTANGLE_TWIDDLED, "RECTANGLE_TWIDDLED"},
+    {DataFormat::BMP, "BMP"},
+    {DataFormat::BMP_MIPMAP, "BMP_MIPMAP"},
+    {DataFormat::VECTOR_QUANTIZATION_SMALL, "VECTOR_QUANTIZATION_SMALL"},
+    {DataFormat::VECTOR_QUANTIZATION_SMALL_MIPMAP, "VECTOR_QUANTIZATION_SMALL_MIPMAP"},
+    {DataFormat::SQUARE_TWIDDLED_MIPMAP_ALT, "SQUARE_TWIDDLED_MIPMAP_ALT"},
+    {DataFormat::DDS, "DDS"},
+    {DataFormat::DDS_2, "DDS_2"},
+    {DataFormat::UNKNOWN, "UNKNOWN"},
+};
+
+std::map<CompressionFormat, std::string> CompressionFormatStrings {
+    {CompressionFormat::RLE, "RLE"},
+    {CompressionFormat::NONE, "NONE"}
 };
 
 }

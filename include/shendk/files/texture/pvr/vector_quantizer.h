@@ -8,7 +8,7 @@
 #include <eigen3/Eigen/Dense>
 
 #include "shendk/utils/math.h"
-#include "shendk/files/texture/image.h"
+#include "shendk/types/image.h"
 #include "shendk/utils/twiddle.h"
 
 namespace shendk {
@@ -28,7 +28,7 @@ struct VectorQuantizer {
         {}
 
         inline void zero() {
-            pixels.Zero();
+            pixels = pixels.Zero(pixels.rows(), pixels.cols());
         }
 
         inline void add(VQBlock& block) {
@@ -66,10 +66,11 @@ struct VectorQuantizer {
         }
 
         uint8_t* toArray() {
-            Eigen::Matrix<uint8_t, Eigen::Dynamic, Eigen::Dynamic> matrix(pixels);
+            Eigen::Matrix<uint8_t, Eigen::Dynamic, Eigen::Dynamic> matrix = pixels.cast<uint8_t>();
             uint8_t* array = new uint8_t(pixels.size());
             memcpy(array, matrix.data(), pixels.size());
             return array;
+            return nullptr;
         }
 
         uint32_t group = 0;

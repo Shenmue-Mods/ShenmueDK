@@ -37,15 +37,15 @@ struct Image {
     int height() const { return m_height; }
     int size()   const { return m_width * m_height * sizeof(PixType); }
 
-    PixType const* getDataPtr() const { return m_rawData; }
+    //PixType const* getDataPtr() const { return m_rawData; }
     PixType *      getDataPtr()       { return m_rawData; }
 
-    PixType const* begin() const { return getDataPtr(); }
+    //PixType const* begin() const { return getDataPtr(); }
     PixType*       begin()       { return getDataPtr(); }
-    PixType const* end() const { return getDataPtr() + m_width * m_height; }
+    //PixType const* end() const { return getDataPtr() + m_width * m_height; }
     PixType*       end()       { return getDataPtr() + m_width * m_height; }
 
-    PixType const& operator[](int index) const { return getDataPtr()[index]; }
+    //PixType const& operator[](int index) const { return getDataPtr()[index]; }
     PixType&       operator[](int index)       { return getDataPtr()[index]; }
 
 protected:
