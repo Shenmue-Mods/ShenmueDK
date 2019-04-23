@@ -4,21 +4,46 @@
 
 namespace shendk {
 
-struct BGR {
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-};
-
 struct BGRA {
-    uint8_t b;
-    uint8_t g;
-    uint8_t r;
-    uint8_t a;
+    uint8_t b = 0;
+    uint8_t g = 0;
+    uint8_t r = 0;
+    uint8_t a = 0;
+
+    BGRA& operator+=(const BGRA& rhs) {
+        r += rhs.r;
+        g += rhs.g;
+        b += rhs.b;
+        a += rhs.a;
+        return *this;
+    }
+
+    BGRA& operator-=(const BGRA& rhs) {
+        r -= rhs.r;
+        g -= rhs.g;
+        b -= rhs.b;
+        a -= rhs.a;
+        return *this;
+    }
+
+    BGRA& operator*=(const BGRA& rhs) {
+        r *= rhs.r;
+        g *= rhs.g;
+        b *= rhs.b;
+        a *= rhs.a;
+        return *this;
+    }
+
+    BGRA& operator/=(const BGRA& rhs) {
+        r /= rhs.r;
+        g /= rhs.g;
+        b /= rhs.b;
+        a /= rhs.a;
+        return *this;
+    }
+
 };
 
-
-template<typename PixType>
 struct Image {
 
     Image(uint32_t width, uint32_t height)
@@ -26,7 +51,7 @@ struct Image {
         , m_height(height)
         , m_rawData(nullptr)
     {
-        m_rawData = new PixType[width * height];
+        m_rawData = new BGRA[width * height];
     }
 
     ~Image() {
@@ -35,27 +60,30 @@ struct Image {
 
     int width()  const { return m_width;  }
     int height() const { return m_height; }
-    int size()   const { return m_width * m_height * sizeof(PixType); }
+    int size()   const { return m_width * m_height * sizeof(BGRA); }
 
-    //PixType const* getDataPtr() const { return m_rawData; }
-    PixType *      getDataPtr()       { return m_rawData; }
+    BGRA const* getDataPtr() const { return m_rawData; }
+    BGRA *      getDataPtr()       { return m_rawData; }
 
-    //PixType const* begin() const { return getDataPtr(); }
-    PixType*       begin()       { return getDataPtr(); }
-    //PixType const* end() const { return getDataPtr() + m_width * m_height; }
-    PixType*       end()       { return getDataPtr() + m_width * m_height; }
+    BGRA const* begin() const { return getDataPtr(); }
+    BGRA*       begin()       { return getDataPtr(); }
+    BGRA const* end() const { return getDataPtr() + m_width * m_height; }
+    BGRA*       end()       { return getDataPtr() + m_width * m_height; }
 
-    //PixType const& operator[](int index) const { return getDataPtr()[index]; }
-    PixType&       operator[](int index)       { return getDataPtr()[index]; }
+    BGRA const& operator[](int index) const { return getDataPtr()[index]; }
+    BGRA&       operator[](int index)       { return getDataPtr()[index]; }
+
+    Image* resize(uint32_t width, uint32_t height) {
+        Image* resizedImage = new Image(width, height);
+
+        // TODO: implement
+    }
 
 protected:
     uint32_t m_width;
     uint32_t m_height;
-    PixType* m_rawData;
-
+    BGRA* m_rawData;
 };
 
-typedef Image<BGRA> ArgbImage;
-typedef Image<BGR>  RgbImage;
 
 }

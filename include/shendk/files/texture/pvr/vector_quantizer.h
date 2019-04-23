@@ -14,6 +14,8 @@
 namespace shendk {
 namespace pvr {
 
+// TODO: cleanup parameter mess (blockWidth, blockHeight)
+// TODO: add dynamic pixel format (RGBA, RGB)
 
 struct VectorQuantizer {
 
@@ -77,13 +79,13 @@ struct VectorQuantizer {
         Eigen::MatrixXf pixels;
     };
 
-    static uint8_t* quantizeImage(ArgbImage& image, uint32_t codeBookSize, uint8_t blockSize, uint8_t pixelSize) {
+    static uint8_t* quantizeImage(Image& image, uint32_t codeBookSize, uint8_t blockSize, uint8_t pixelSize) {
 
         std::vector<VQBlock> codeBook = createCodebook(image, codeBookSize);
         return quantizeImage(image, codeBook, blockSize);
     }
 
-    static uint8_t* quantizeImage(ArgbImage& image, std::vector<VQBlock> codeBook, uint8_t blockSize) {
+    static uint8_t* quantizeImage(Image& image, std::vector<VQBlock> codeBook, uint8_t blockSize) {
         std::vector<VQBlock> blocks = createBlocks(image, blockSize, blockSize);
         uint8_t* result = new uint8_t[blocks.size()];
         double dump = 0.0;
@@ -96,7 +98,7 @@ struct VectorQuantizer {
 
 private:
 
-    static std::vector<VQBlock> createBlocks(ArgbImage& image, int blockWidth = 2, int blockHeight = 2) {
+    static std::vector<VQBlock> createBlocks(Image& image, int blockWidth = 2, int blockHeight = 2) {
         //Convert bitmap to blocks
         int width = image.width() / blockWidth;
         int height = image.height() / blockHeight;
@@ -163,7 +165,7 @@ private:
         }
     }
 
-    static std::vector<VQBlock> createCodebook(ArgbImage& image, int codeBookSize, int blockWidth = 2, int blockHeight = 2)
+    static std::vector<VQBlock> createCodebook(Image& image, int codeBookSize, int blockWidth = 2, int blockHeight = 2)
     {
         if (image.width() % blockWidth != 0 || image.height() % blockHeight != 0) {
             throw std::runtime_error("The image can't be devided by the given block size!");

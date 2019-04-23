@@ -12,7 +12,7 @@ namespace pvr {
 
 struct PixelCodec {
 
-    virtual bool canEncode() = 0;
+    virtual bool canEncode() = 0; // TODO: we can encode every available codec (remove this)
     virtual uint16_t bpp() = 0;
 
     virtual void decodePixel(uint8_t* src, uint64_t srcIndex, uint8_t* dst, uint64_t dstIndex) = 0;

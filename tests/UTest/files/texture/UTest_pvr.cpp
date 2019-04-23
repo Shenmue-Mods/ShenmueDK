@@ -15,12 +15,14 @@ namespace {
         pvr.read("H:\\test.pvr");
         std::cout << shendk::pvr::DataFormatStrings[pvr.header.dataFormat] << std::endl;
         std::cout << shendk::pvr::PixelFormatStrings[pvr.header.pixelFormat] << std::endl;
+
         for (auto& mipmap : pvr.mipmaps) {
 
-            shendk::ArgbImage* image = mipmap.get();
+            shendk::Image* image = mipmap.get();
+            shendk::Image* newImage = image->resize(256, 256);
 
-            std::cout << image->width() << "x" << mipmap->height() << std::endl;
-            for (auto& pixel : *image) {
+            std::cout << newImage->width() << "x" << newImage->height() << std::endl;
+            for (auto& pixel : *newImage) {
                 shendk::BGRA pix = pixel;
                 outFile.write(reinterpret_cast<char*>(&pix), sizeof(shendk::BGRA));
             }

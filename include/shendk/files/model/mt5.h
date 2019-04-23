@@ -9,10 +9,10 @@
 namespace shendk {
 
 struct MT5 : File {
-	unsigned int signature = 1296257608;
+    const unsigned int signature = 1296257608;
 
     struct Header {
-		char signature[4];
+        uint32_t signature;
 		uint32_t texdOffset;
 		uint32_t firstNodeOffset;
     };
@@ -35,6 +35,7 @@ struct MT5 : File {
         char name[4];
         uint32_t unknown;
     };
+
 
 	MT5() = default;
 

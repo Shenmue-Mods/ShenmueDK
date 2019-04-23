@@ -146,7 +146,7 @@ protected:
                 {
                     stream.seekg(baseOffset + dataOffset + mipmapOffsets[i], std::ios::beg);
                     uint8_t* pixels = dataCodec->decode(stream, size, size, pixelCodec);
-                    std::shared_ptr<ArgbImage> mipmap(new ArgbImage(size, size));
+                    std::shared_ptr<Image> mipmap(new Image(size, size));
                     memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
                     mipmaps.push_back(mipmap);
                     delete[] pixels;
@@ -154,7 +154,7 @@ protected:
             } else {
                 stream.seekg(baseOffset + dataOffset + mipmapOffsets[0], std::ios::beg);
                 uint8_t* pixels = dataCodec->decode(stream, header.width, header.height, pixelCodec);
-                std::shared_ptr<ArgbImage> mipmap(new ArgbImage(header.width, header.height));
+                std::shared_ptr<Image> mipmap(new Image(header.width, header.height));
                 memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
                 mipmaps.push_back(mipmap);
                 delete[] pixels;
@@ -173,6 +173,38 @@ protected:
 
     virtual void _write(std::ostream& stream) {
         int64_t baseOffset = stream.tellp();
+
+        if (header.dataFormat == pvr::DataFormat::DDS || header.dataFormat == pvr::DataFormat::DDS_2) {
+            throw new std::runtime_error("DDS not implemented!"); // TODO: implement
+        } else {
+            pvr::PixelCodec* pixelCodec = pvr::getPixelCodec(header.pixelFormat);
+            pvr::DataCodec* dataCodec = pvr::getDataCodec(header.dataFormat);
+
+            if (pixelCodec == nullptr || !pixelCodec->canEncode()) {
+                throw new std::runtime_error("Invalid pixel codec!");
+            }
+            if (dataCodec == nullptr || !dataCodec->canEncode()) {
+                throw new std::runtime_error("Invalid data codec!");
+            }
+            dataCodec->pixelCodec = pixelCodec; // TODO: again lazy initialization
+
+            uint8_t* decodedData = nullptr;
+
+            // TODO: implement
+
+            // encode palette if necessary
+            if (dataCodec->paletteEntries(header.width) != 0) {
+                if (dataCodec->vq()) {
+
+                } else {
+
+                }
+            }
+
+
+            delete pixelCodec;
+            delete dataCodec;
+        }
     }
 
     virtual bool _isValid(unsigned int signature)
