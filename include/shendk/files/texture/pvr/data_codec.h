@@ -7,7 +7,7 @@
 
 #include "shendk/utils/math.h"
 #include "shendk/utils/twiddle.h"
-#include "shendk/files/image/pvr/pixel_codec.h"
+#include "shendk/files/texture/pvr/pixel_codec.h"
 
 namespace shendk {
 namespace pvr {
@@ -20,7 +20,7 @@ struct DataCodec {
 
     virtual bool canEncode() = 0;
     virtual uint16_t bpp() = 0;
-    virtual uint16_t paletteEntries() { return 0; }
+    virtual uint16_t paletteEntries(uint16_t) { return 0; }
     virtual bool needsExternalPalette() { return false; }
     virtual bool hasMipmaps() { return false; }
     virtual bool vq() { return false; }
@@ -107,7 +107,7 @@ struct VQ : public DataCodec {
     bool canEncode() { return true; }
     bool vq() { return true; }
     uint16_t bpp() { return 2; }
-    uint16_t paletteEntries() { return 1024; } // 256 * 4 texels
+    uint16_t paletteEntries(uint16_t) { return 1024; } // 256 * 4 texels
 
     uint8_t* decode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) {
         uint8_t* destination = new uint8_t[width * height * 4];
@@ -167,10 +167,23 @@ struct VQMipmaps : public VQ {
     bool hasMipmaps() { return true; }
 };
 
+struct VQSmall : public VQ {
+    uint16_t paletteEntries(uint16_t width) {
+        if      (width <= 16) { return 64; }
+        else if (width <= 32) { return 256; }
+        else if (width <= 64) { return 512; }
+        else                  { return 1024; }
+    }
+};
+
+struct VQSmallMipmaps : public VQSmall {
+    bool hasMipmaps() { return true; }
+};
+
 struct Index4 : public DataCodec {
     bool canEncode() { return true; }
     uint16_t bpp() { return 4; }
-    uint16_t paletteEntries() { return 16; }
+    uint16_t paletteEntries(uint16_t) { return 16; }
     bool needsExternalPalette() { return true; }
 
     uint8_t* decode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) {
@@ -226,7 +239,7 @@ struct Index4Mipmap : public Index4 {
 struct Index8 : public DataCodec {
     bool canEncode() { return true; }
     uint16_t bpp() { return 8; }
-    uint16_t paletteEntries() { return 256; }
+    uint16_t paletteEntries(uint16_t) { return 256; }
     bool needsExternalPalette() { return true; }
 
     uint8_t* decode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) {
@@ -350,33 +363,35 @@ struct RectangleTwiddled : public DataCodec {
 };
 
 
-static DataCodec* getDataCodec(PvrDataFormat format)
+static DataCodec* getDataCodec(DataFormat format)
 {
     switch (format)
     {
-        case PvrDataFormat::SQUARE_TWIDDLED:
+        case DataFormat::SQUARE_TWIDDLED:
             return new SquareTwiddled();
-        case PvrDataFormat::SQUARE_TWIDDLED_MIPMAP:
-        case PvrDataFormat::SQUARE_TWIDDLED_MIPMAP_ALT:
+        case DataFormat::SQUARE_TWIDDLED_MIPMAP:
+        case DataFormat::SQUARE_TWIDDLED_MIPMAP_ALT:
             return new SquareTwiddledMipmaps();
-        case PvrDataFormat::VECTOR_QUANTIZATION:
-        case PvrDataFormat::VECTOR_QUANTIZATION_SMALL:
+        case DataFormat::VECTOR_QUANTIZATION:
             return new VQ();
-        case PvrDataFormat::VECTOR_QUANTIZATION_MIPMAP:
-        case PvrDataFormat::VECTOR_QUANTIZATION_SMALL_MIPMAP:
+        case DataFormat::VECTOR_QUANTIZATION_MIPMAP:
             return new VQMipmaps();
-        case PvrDataFormat::PALETTIZE_4BIT:
+        case DataFormat::VECTOR_QUANTIZATION_SMALL:
+            return new VQSmall();
+        case DataFormat::VECTOR_QUANTIZATION_SMALL_MIPMAP:
+            return new VQSmallMipmaps();
+        case DataFormat::PALETTIZE_4BIT:
             return new Index4();
-        case PvrDataFormat::PALETTIZE_4BIT_MIPMAP:
+        case DataFormat::PALETTIZE_4BIT_MIPMAP:
             return new Index4Mipmap();
-        case PvrDataFormat::PALETTIZE_8BIT:
+        case DataFormat::PALETTIZE_8BIT:
             return new Index8();
-        case PvrDataFormat::PALETTIZE_8BIT_MIPMAP:
+        case DataFormat::PALETTIZE_8BIT_MIPMAP:
             return new Index8Mipmap();
-        case PvrDataFormat::RECTANGLE:
-        case PvrDataFormat::RECTANGLE_STRIDE:
+        case DataFormat::RECTANGLE:
+        case DataFormat::RECTANGLE_STRIDE:
             return new Rectangle();
-        case PvrDataFormat::RECTANGLE_TWIDDLED:
+        case DataFormat::RECTANGLE_TWIDDLED:
             return new RectangleTwiddled();
         default:
             return nullptr;

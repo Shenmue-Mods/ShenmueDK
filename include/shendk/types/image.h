@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+namespace shendk {
+
 struct BGR {
     uint8_t b;
     uint8_t g;
@@ -56,4 +58,4 @@ protected:
 typedef Image<BGRA> ArgbImage;
 typedef Image<BGR>  RgbImage;
 
-
+}

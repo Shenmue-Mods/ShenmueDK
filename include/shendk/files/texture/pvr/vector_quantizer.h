@@ -8,7 +8,7 @@
 #include <eigen3/Eigen/Dense>
 
 #include "shendk/utils/math.h"
-#include "shendk/files/image/image.h"
+#include "shendk/files/texture/image.h"
 #include "shendk/utils/twiddle.h"
 
 namespace shendk {

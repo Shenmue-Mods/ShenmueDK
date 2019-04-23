@@ -8,7 +8,7 @@ namespace pvr {
 /**
  * @brief PVR Pixel Formats
  */
-enum class PvrPixelFormat : uint8_t
+enum class PixelFormat : uint8_t
 {
     ARGB1555        = 0x00, //Format consisting of one bit of alpha value and five bits of RGB values. The alpha value indicates transparent when it is 0 and opaque when it is 1.
     RGB565          = 0x01, //Format without alpha value and consisting of five bits of RB values and six bits of G value.
@@ -25,7 +25,7 @@ enum class PvrPixelFormat : uint8_t
 /**
  * @brief PVR Data Formats
  */
-enum class PvrDataFormat : uint8_t
+enum class DataFormat : uint8_t
 {
     SQUARE_TWIDDLED                     = 0x01, //Supported
     SQUARE_TWIDDLED_MIPMAP              = 0x02, //Supported
@@ -53,7 +53,7 @@ enum class PvrDataFormat : uint8_t
 /**
  * @brief PVR Compression Formats
  */
-enum class PvrCompressionFormat
+enum class CompressionFormat
 {
     NONE,
     RLE

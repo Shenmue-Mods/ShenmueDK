@@ -7,8 +7,8 @@
 
 #include "shendk/utils/math.h"
 #include "shendk/utils/memstream.h"
-#include "shendk/files/image/pvr/formats.h"
-#include "shendk/files/image/pvr/data_codec.h"
+#include "shendk/files/texture/pvr/formats.h"
+#include "shendk/files/texture/pvr/data_codec.h"
 
 
 namespace shendk {
@@ -17,6 +17,8 @@ namespace pvr {
 // TODO: implement (not needed for shenmue at the moment)
 
 struct CompressionCodec {
+
+    virtual ~CompressionCodec() {}
 
     virtual uint8_t* decompress(uint8_t* input, uint32_t inputLength, uint64_t DataOffset, DataCodec* DataCodec) = 0;
     virtual uint8_t* compress(uint8_t* input, uint32_t inputLength, uint64_t DataOffset, DataCodec* DataCodec) = 0;
@@ -103,11 +105,11 @@ struct RLE : CompressionCodec {
 
 };
 
-static CompressionCodec* getCompressionCodec(PvrCompressionFormat format)
+static CompressionCodec* getCompressionCodec(CompressionFormat format)
 {
     switch (format)
     {
-        case PvrCompressionFormat::RLE:
+        case CompressionFormat::RLE:
             return new RLE();
         default:
             return nullptr;

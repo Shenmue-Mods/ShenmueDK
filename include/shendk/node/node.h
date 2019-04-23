@@ -35,9 +35,6 @@ protected:
     virtual uint32_t _serialize(std::ostream& stream) = 0;
     virtual void _deserialize(std::istream& stream) = 0;
 
-private:
-    char* data;
-
 };
 
 }

@@ -5,7 +5,7 @@
 #include <algorithm>
 
 #include "shendk/utils/math.h"
-#include "shendk/files/image/pvr/formats.h"
+#include "shendk/files/texture/pvr/formats.h"
 
 namespace shendk {
 namespace pvr {
@@ -262,23 +262,23 @@ struct ARGB8888 : public PixelCodec {
     }
 };
 
-static PixelCodec* getPixelCodec(PvrPixelFormat format)
+static PixelCodec* getPixelCodec(PixelFormat format)
 {
     switch (format)
     {
-        case PvrPixelFormat::ARGB1555:
+        case PixelFormat::ARGB1555:
             return new ARGB1555();
-        case PvrPixelFormat::RGB565:
+        case PixelFormat::RGB565:
             return new RGB565();
-        case PvrPixelFormat::ARGB4444:
+        case PixelFormat::ARGB4444:
             return new ARGB4444();
-        case PvrPixelFormat::YUV422:
+        case PixelFormat::YUV422:
             return new YUV422();
-        case PvrPixelFormat::BUMP88:
+        case PixelFormat::BUMP88:
             return new BUMP88();
-        case PvrPixelFormat::RGB555:
+        case PixelFormat::RGB555:
             return new RGB555();
-        case PvrPixelFormat::ARGB8888:
+        case PixelFormat::ARGB8888:
             return new ARGB8888();
         default:
             return nullptr;
