@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "shendk/utils/math.h"
+#include "shendk/utils/twiddle.h"
 #include "shendk/files/image/pvr/pixel_codec.h"
 
 namespace shendk {
@@ -62,17 +63,6 @@ protected:
     virtual uint8_t* decode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) = 0;
     virtual uint8_t* encode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) = 0;
 
-    uint64_t* makeTwiddleMap(uint64_t size) {
-        uint64_t* twiddleMap = new uint64_t[size];
-        for (uint64_t i = 0; i < size; i++) {
-            twiddleMap[i] = 0;
-            for (uint64_t j = 0, k = 1; k <= i; j++, k <<= 1) {
-                twiddleMap[i] |= (i & k) << j;
-            }
-        }
-        return twiddleMap;
-    }
-
     uint8_t* m_palette;
 
 };
@@ -85,7 +75,7 @@ struct SquareTwiddled : public DataCodec {
     uint8_t* decode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) {
         uint8_t* destination = new uint8_t[width * height * 4];
         uint64_t destinationIndex = 0;
-        uint64_t* twiddleMap = makeTwiddleMap(width);
+        uint64_t* twiddleMap = createTwiddleMap(width);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 pixelCodec->decodePixel(src, srcIndex + (((twiddleMap[x] << 1) | twiddleMap[y]) << (pixelCodec->bpp() >> 4)), destination, destinationIndex);
@@ -98,7 +88,7 @@ struct SquareTwiddled : public DataCodec {
 
     uint8_t* encode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) {
         uint8_t* destination = new uint8_t[width * height * (pixelCodec->bpp() >> 3)];
-        uint64_t* twiddleMap = makeTwiddleMap(width);
+        uint64_t* twiddleMap = createTwiddleMap(width);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 pixelCodec->encodePixel(src, srcIndex, destination, ((twiddleMap[x] << 1) | twiddleMap[y]) << (pixelCodec->bpp() >> 4));
@@ -134,7 +124,7 @@ struct VQ : public DataCodec {
             return destination;
         }
 
-        uint64_t* twiddleMap = makeTwiddleMap(width);
+        uint64_t* twiddleMap = createTwiddleMap(width);
         for (int y = 0; y < height; y += 2) {
             for (int x = 0; x < width; x += 2) {
                 int index = src[srcIndex + ((twiddleMap[x >> 1] << 1) | twiddleMap[y >> 1])] * 4;
@@ -160,7 +150,7 @@ struct VQ : public DataCodec {
         uint8_t* destination = new uint8_t[compressedWidth * compressedHeight];
         uint64_t destinationIndex = 0;
         uint16_t size = std::min(compressedWidth, compressedHeight);
-        uint64_t* twiddleMap = makeTwiddleMap(size);
+        uint64_t* twiddleMap = createTwiddleMap(size);
         for (uint16_t y = 0; y < compressedHeight; y++) {
             for (uint16_t x = 0; x < compressedWidth; x++) {
                 destinationIndex = (twiddleMap[x] << 1) | twiddleMap[y];
@@ -187,7 +177,7 @@ struct Index4 : public DataCodec {
         uint8_t* destination = new uint8_t[width * height * 4];
         uint64_t destinationIndex;
         uint64_t size = std::min(width, height);
-        uint64_t* twiddleMap = makeTwiddleMap(size);
+        uint64_t* twiddleMap = createTwiddleMap(size);
         for (int y = 0; y < height; y += size) {
             for (int x = 0; x < width; x += size) {
                 for (uint64_t y2 = 0; y2 < size; y2++) {
@@ -211,7 +201,7 @@ struct Index4 : public DataCodec {
         uint8_t* destination = new uint8_t[(width * height) >> 1];
         uint64_t destinationIndex = 0;
         uint64_t size = std::min(width, height);
-        uint64_t* twiddleMap = makeTwiddleMap(size);
+        uint64_t* twiddleMap = createTwiddleMap(size);
         for (int y = 0; y < height; y += size) {
             for (int x = 0; x < width; x += size) {
                 for (uint64_t y2 = 0; y2 < size; y2++) {
@@ -243,7 +233,7 @@ struct Index8 : public DataCodec {
         uint8_t* destination = new uint8_t[width * height * 4];
         uint64_t destinationIndex;
         uint64_t size = std::min(width, height);
-        uint64_t* twiddleMap = makeTwiddleMap(size);
+        uint64_t* twiddleMap = createTwiddleMap(size);
         for (int y = 0; y < height; y += size) {
             for (int x = 0; x < width; x += size) {
                 for (uint64_t y2 = 0; y2 < size; y2++) {
@@ -267,7 +257,7 @@ struct Index8 : public DataCodec {
         uint8_t* destination = new uint8_t[width * height];
         uint64_t destinationIndex = 0;
         uint64_t size = std::min(width, height);
-        uint64_t* twiddleMap = makeTwiddleMap(size);
+        uint64_t* twiddleMap = createTwiddleMap(size);
         for (int x = 0; x < width; x += size) {
             for (int y = 0; y < height; y += size) {
                 for (uint64_t y2 = 0; y2 < size; y2++) {
@@ -324,7 +314,7 @@ struct RectangleTwiddled : public DataCodec {
     uint8_t* decode(uint8_t* src, uint64_t srcIndex, uint16_t width, uint16_t height) {
         uint8_t* destination = new uint8_t[width * height * 4];
         uint16_t size = std::min(width, height);
-        uint64_t* twiddleMap = makeTwiddleMap(size);
+        uint64_t* twiddleMap = createTwiddleMap(size);
         for (int y = 0; y < height; y += size) {
             for (int x = 0; x < width; x += size) {
                 for (int y2 = 0; y2 < size; y2++) {
@@ -343,7 +333,7 @@ struct RectangleTwiddled : public DataCodec {
         uint8_t*  destination = new uint8_t[width * height * (pixelCodec->bpp() >> 3)];
         uint64_t destinationIndex = 0;
         uint16_t size = std::min(width, height);
-        uint64_t* twiddleMap = makeTwiddleMap(size);
+        uint64_t* twiddleMap = createTwiddleMap(size);
         for (int y = 0; y < height; y += size) {
             for (int x = 0; x < width; x += size) {
                 for (int y2 = 0; y2 < size; y2++) {

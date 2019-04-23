@@ -22,6 +22,7 @@ public:
     using off_type = typename Base::off_type;
 
     basic_mstreambuf() {
+        m_bufferOwner = true;
         m_buffer = new char_type[4];
         m_bufferSize = 4;
         std::memset(m_buffer, 0, 4);
@@ -30,6 +31,7 @@ public:
     }
 
     basic_mstreambuf(char_type* buffer, size_t size) {
+        m_bufferOwner = false; // TODO: take ownership of memory?
         m_buffer = buffer;
         m_bufferSize = size;
         this->setp(m_buffer, m_buffer + m_bufferSize);
@@ -37,7 +39,11 @@ public:
         this->setg(m_buffer, m_buffer, m_buffer + m_bufferSize);
     }
 
-    ~basic_mstreambuf() {}
+    ~basic_mstreambuf() {
+        if (m_bufferOwner) {
+            delete[] m_buffer;
+        }
+    }
 
     int overflow( int c = EOF )
     {
@@ -132,9 +138,15 @@ public:
         return this->egptr() - this->gptr();
     }
 
+    char_type* getBuffer(size_t& bufferSize) {
+        bufferSize = m_bufferSize;
+        return m_buffer;
+    }
+
 private:
     char_type* m_buffer;
     size_t m_bufferSize;
+    bool m_bufferOwner;
 
 };
 
@@ -161,6 +173,11 @@ struct omstream
     omstream(basic_mstreambuf* stream)
         : std::ostream(stream) {
     }
+
+    char* getBuffer(uint64_t& bufferSize) {
+        mstreambuf* buf = dynamic_cast<mstreambuf*>(rdbuf());
+        return buf->getBuffer(bufferSize);
+    }
 };
 
 /**
@@ -182,5 +199,10 @@ struct imstream
 
     imstream(basic_mstreambuf* stream)
         : std::istream(stream) {
+    }
+
+    char* getBuffer(uint64_t& bufferSize) {
+        mstreambuf* buf = dynamic_cast<mstreambuf*>(rdbuf());
+        return buf->getBuffer(bufferSize);
     }
 };
