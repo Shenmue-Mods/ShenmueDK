@@ -2,10 +2,13 @@
 
 #include <stdint.h>
 #include <vector>
+#include <memory>
 
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
 
+#include "shendk/files/file.h"
+#include "shendk/files/texture/texture.h"
 #include "shendk/utils/math.h"
 
 namespace shendk {
@@ -70,9 +73,9 @@ struct ModelNode {
         scaleMatrix.row(1)[1] = scale.y();
         scaleMatrix.row(2)[2] = scale.z();
         Eigen::Matrix4f translationMatrix(Eigen::Matrix4f::Identity());
-        translationMatrix.row(3)[0] = scale.x();
-        translationMatrix.row(3)[1] = scale.y();
-        translationMatrix.row(3)[2] = scale.z();
+        translationMatrix.row(3)[0] = position.x();
+        translationMatrix.row(3)[1] = position.y();
+        translationMatrix.row(3)[2] = position.z();
         return scaleMatrix * rotMatX * rotMatY * rotMatZ * translationMatrix;
     }
 
@@ -84,6 +87,10 @@ struct ModelNode {
         }
         return getTransformMatrixSelf() * matrix;
     }
+
+    virtual ~ModelNode() {}
+
+    uint32_t id;
 
     Eigen::Vector3f position;
     Eigen::Vector3f rotation;
@@ -103,7 +110,7 @@ struct ModelNode {
 
 };
 
-struct Model {
+struct Model : File {
 
     // Model ID = {0x00;LayerID;TypeID;BoneID}
 
@@ -147,6 +154,8 @@ struct Model {
         Unknown6 = 0x16, // background meshes
     };
 
+    ModelNode* rootNode;
+    std::vector<std::shared_ptr<Texture>> textures;
 };
 
 

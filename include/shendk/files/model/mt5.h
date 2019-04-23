@@ -4,20 +4,14 @@
 #include <iostream>
 #include <filesystem>
 
-#include "shendk/files/file.h"
+#include "shendk/files/model/model.h"
+#include "shendk/files/model/mt5/meshdata.h"
 
 namespace shendk {
 
-struct MT5 : File {
-    const unsigned int signature = 1296257608;
+struct MT5Node : ModelNode {
 
-    struct Header {
-        uint32_t signature;
-		uint32_t texdOffset;
-		uint32_t firstNodeOffset;
-    };
-
-    struct Node {
+    struct Data {
         uint32_t id;
         uint32_t meshOffset;
         uint32_t rotX; // degX = rotX / 0xFFFF * 360.0f
@@ -36,6 +30,59 @@ struct MT5 : File {
         uint32_t unknown;
     };
 
+    MT5Node() {}
+
+    MT5Node(std::istream& stream) {
+        read(stream);
+    }
+
+    virtual ~MT5Node() {}
+
+    void read(std::istream& stream) {
+        stream.read(reinterpret_cast<char*>(&data), sizeof(MT5Node::Data));
+        int64_t offset = stream.tellg();
+
+        id = data.id;
+        position = Eigen::Vector3f(data.posX, data.posY, data.posZ);
+        scale = Eigen::Vector3f(data.sclX, data.sclY, data.sclZ);
+        rotation = Eigen::Vector3f(ushortToDegrees(data.rotX), ushortToDegrees(data.rotY), ushortToDegrees(data.rotZ));
+
+        // read mesh data
+        if (data.meshOffset != 0) {
+            stream.seekg(data.meshOffset, std::ios::beg);
+            meshdata = new mt5::MeshData(stream, this);
+        }
+
+        // construct nodes
+        if (data.childNodeOffset != 0) {
+            stream.seekg(data.childNodeOffset, std::ios::beg);
+            child = new MT5Node(stream);
+        }
+
+        if (data.nextNodeOffset != 0) {
+            stream.seekg(data.nextNodeOffset, std::ios::beg);
+            nextSibling = new MT5Node(stream);
+        }
+
+        stream.seekg(offset, std::ios::beg);
+    }
+
+    void write(std::ostream& stream) {
+
+    }
+
+    MT5Node::Data data;
+    mt5::MeshData* meshdata;
+};
+
+struct MT5 : Model {
+    const unsigned int signature = 1296257608;
+
+    struct Header {
+        uint32_t signature;
+		uint32_t texdOffset;
+		uint32_t firstNodeOffset;
+    };
 
 	MT5() = default;
 
@@ -55,8 +102,9 @@ protected:
 
 		// Read header..
 		_stream->read(reinterpret_cast<char*>(&header), sizeof(MT5::Header));
-		if (!isValid(header.signature))
-			throw new std::runtime_error("Invalid signature for MT5 file!\n");
+        if (!isValid(header.signature)) throw new std::runtime_error("Invalid signature for MT5 file!\n");
+
+
 
 	}
 

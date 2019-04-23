@@ -2,11 +2,11 @@
 
 #include <stdint.h>
 
-#include "shendk/files/file.h"
+#include "shendk/files/model/model.h"
 
 namespace shendk {
 
-struct MT7 : File {
+struct MT7 : Model {
 
     struct Header {
         uint32_t signature;
