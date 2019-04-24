@@ -1,15 +1,15 @@
 #pragma once
 
-#include "shendk/files/texture/texture.h"
-#include "shendk/files/texture/pvr/formats.h"
-#include "shendk/files/texture/pvr/data_codec.h"
-#include "shendk/files/texture/pvr/pixel_codec.h"
-#include "shendk/files/texture/pvr/compression_codec.h"
-#include "shendk/files/texture/pvr/vector_quantizer.h"
+#include "shendk/files/image_file.h"
+#include "shendk/files/image/pvr/formats.h"
+#include "shendk/files/image/pvr/data_codec.h"
+#include "shendk/files/image/pvr/pixel_codec.h"
+#include "shendk/files/image/pvr/compression_codec.h"
+#include "shendk/files/image/pvr/vector_quantizer.h"
 
 namespace shendk {
 
-struct PVR : Texture {
+struct PVR : ImageFile {
 
     const static uint32_t gbix = 0x58494247;
     const static uint32_t pvrt = 0x54525650;

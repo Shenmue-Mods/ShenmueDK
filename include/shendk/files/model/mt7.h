@@ -2,11 +2,12 @@
 
 #include <stdint.h>
 
-#include "shendk/files/model/model.h"
+#include "shendk/types/model.h"
+#include "shendk/files/model_file.h"
 
 namespace shendk {
 
-struct MT7 : Model {
+struct MT7 : ModelFile {
 
     struct Header {
         uint32_t signature;
@@ -14,7 +15,6 @@ struct MT7 : Model {
         uint32_t firstNodeOffset;
         uint32_t textureCount;
     };
-
 
     struct Node {
         uint32_t id;

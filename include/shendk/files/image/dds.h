@@ -1,10 +1,10 @@
 #pragma once
 
-#include "shendk/files/texture/texture.h"
+#include "shendk/files/image_file.h"
 
 namespace shendk {
 
-struct DDS : Texture {
+struct DDS : ImageFile {
 
     DDS() = default;
 

@@ -7,8 +7,8 @@
 
 #include "shendk/utils/math.h"
 #include "shendk/utils/memstream.h"
-#include "shendk/files/texture/pvr/formats.h"
-#include "shendk/files/texture/pvr/data_codec.h"
+#include "shendk/files/image/pvr/formats.h"
+#include "shendk/files/image/pvr/data_codec.h"
 
 
 namespace shendk {

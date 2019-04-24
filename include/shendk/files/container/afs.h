@@ -2,11 +2,11 @@
 
 #include <map>
 
-#include "shendk/files/file.h"
+#include "shendk/files/container_file.h"
 
 namespace shendk {
 
-struct AFS : File {
+struct AFS : ContainerFile {
 	unsigned int signature = 5457473;
 
     struct Header {
@@ -38,6 +38,10 @@ struct AFS : File {
 
     ~AFS() {}
 
+    void unpack(const std::string& folder) {
+        fs::create_directories(folder);
+    }
+
     AFS::Header header;
     std::vector<AFS::OffsetEntry> entries;
     std::vector<AFS::MetaEntry> entriesMeta;
@@ -49,8 +53,6 @@ protected:
     const uint32_t fileCountMagic = 1016; // TODO: fix this magic number
 
     virtual void _read(std::istream& stream) {
-        int64_t baseOffset = stream.tellg();
-
         // read header
         stream.read(reinterpret_cast<char*>(&header), sizeof(AFS::Header));
 
@@ -96,8 +98,6 @@ protected:
     }
 
     virtual void _write(std::ostream& stream) {
-        int64_t baseOffset = stream.tellp();
-
         // calculate entry data start offset
         uint32_t fileCount = static_cast<uint32_t>(entries.size());
         uint32_t startOffset = sizeof(AFS::Header) + fileCount * sizeof(AFS::OffsetEntry);

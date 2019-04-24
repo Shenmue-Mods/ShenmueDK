@@ -1,18 +1,18 @@
 #pragma once
 
-#include "shendk/files/texture/texture.h"
+#include "shendk/files/file.h"
 
 namespace shendk {
 
-struct BMP : Texture {
+struct MAPINFO : File {
 
-    BMP() = default;
+    MAPINFO() = default;
 
-    BMP(const std::string& filepath) {
+    MAPINFO(const std::string& filepath) {
         read(filepath);
     }
 
-    ~BMP() {}
+    ~MAPINFO() {}
 
 protected:
     virtual void _read(std::istream& stream) {

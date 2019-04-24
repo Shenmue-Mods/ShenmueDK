@@ -4,83 +4,25 @@
 #include <iostream>
 #include <filesystem>
 
-#include "shendk/files/model/model.h"
+#include "shendk/files/model_file.h"
 #include "shendk/files/model/mt5/meshdata.h"
+#include "shendk/files/model/mt5/mt5_node.h"
+#include "shendk/files/model/mt5/ptrl.h"
+#include "shendk/files/model/mt5/texl.h"
+#include "shendk/files/model/mt5/texd.h"
+#include "shendk/files/model/mt5/name.h"
+#include "shendk/node/texn.h"
+#include "shendk/types/texture_id.h"
+#include "shendk/types/model.h"
 
 namespace shendk {
 
-struct MT5Node : ModelNode {
-
-    struct Data {
-        uint32_t id;
-        uint32_t meshOffset;
-        uint32_t rotX; // degX = rotX / 0xFFFF * 360.0f
-        uint32_t rotY; // degY = rotY / 0xFFFF * 360.0f
-        uint32_t rotZ; // degZ = rotZ / 0xFFFF * 360.0f
-        float sclX;
-        float sclY;
-        float sclZ;
-        float posX;
-        float posY;
-        float posZ;
-        uint32_t childNodeOffset;
-        uint32_t nextNodeOffset;
-        uint32_t parentNodeOffset;
-        char name[4];
-        uint32_t unknown;
-    };
-
-    MT5Node() {}
-
-    MT5Node(std::istream& stream) {
-        read(stream);
-    }
-
-    virtual ~MT5Node() {}
-
-    void read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&data), sizeof(MT5Node::Data));
-        int64_t offset = stream.tellg();
-
-        id = data.id;
-        position = Eigen::Vector3f(data.posX, data.posY, data.posZ);
-        scale = Eigen::Vector3f(data.sclX, data.sclY, data.sclZ);
-        rotation = Eigen::Vector3f(ushortToDegrees(data.rotX), ushortToDegrees(data.rotY), ushortToDegrees(data.rotZ));
-
-        // read mesh data
-        if (data.meshOffset != 0) {
-            stream.seekg(data.meshOffset, std::ios::beg);
-            meshdata = new mt5::MeshData(stream, this);
-        }
-
-        // construct nodes
-        if (data.childNodeOffset != 0) {
-            stream.seekg(data.childNodeOffset, std::ios::beg);
-            child = new MT5Node(stream);
-        }
-
-        if (data.nextNodeOffset != 0) {
-            stream.seekg(data.nextNodeOffset, std::ios::beg);
-            nextSibling = new MT5Node(stream);
-        }
-
-        stream.seekg(offset, std::ios::beg);
-    }
-
-    void write(std::ostream& stream) {
-
-    }
-
-    MT5Node::Data data;
-    mt5::MeshData* meshdata;
-};
-
-struct MT5 : Model {
+struct MT5 : ModelFile {
     const unsigned int signature = 1296257608;
 
     struct Header {
         uint32_t signature;
-		uint32_t texdOffset;
+        uint32_t nodesSize;
 		uint32_t firstNodeOffset;
     };
 
@@ -92,27 +34,82 @@ struct MT5 : Model {
 
 	MT5::Header header;
 
+    // texture stuff
+    std::vector<TEXN> texnEntries;
+    mt5::TEXD* texd = nullptr;
+    mt5::TEXL* texl = nullptr;
+    mt5::PTRL* ptrl = nullptr;
+    mt5::NAME* name = nullptr;
+
 protected:
-	virtual void _read(std::istream& stream) {
-		int64_t baseOffset = stream.tellg();
-		
-		std::istream* _stream = &stream;
+    void _read(std::istream& stream) {
 
-		_stream->seekg(baseOffset, std::ios::beg);
-
-		// Read header..
-		_stream->read(reinterpret_cast<char*>(&header), sizeof(MT5::Header));
+        // read header
+        stream.read(reinterpret_cast<char*>(&header), sizeof(MT5::Header));
         if (!isValid(header.signature)) throw new std::runtime_error("Invalid signature for MT5 file!\n");
 
+        // read nodes
+        stream.seekg(baseOffset + header.firstNodeOffset, std::ios::beg);
+        model->rootNode = new mt5::MT5Node(stream, baseOffset);
 
+        // read appended nodes (textures and other stuff)
+        int64_t nodeOffset;
+        Node::Header nodeHeader;
+        stream.seekg(baseOffset + header.nodesSize, std::ios::beg);
+        while(!stream.eof()) {
+            nodeOffset = stream.tellg();
+            stream.read(reinterpret_cast<char*>(&nodeHeader), sizeof(Node::Header));
+            if (nodeHeader.signature == 0x44584554) { //TEXD
+                stream.seekg(nodeOffset, std::ios::beg);
+                if (!texd) {
+                    texd = new mt5::TEXD(stream);
+                } else {
+                    throw new std::runtime_error("TEXD node already exists!");
+                }
+            } else if (nodeHeader.signature == 0x454D414E) { //NAME
+                stream.seekg(nodeOffset, std::ios::beg);
+                if (!name) {
+                    name = new mt5::NAME(stream);
+                } else {
+                    throw new std::runtime_error("NAME node already exists!");
+                }
+            } else if (nodeHeader.signature == 0x4C584554) { //TEXL
+                stream.seekg(nodeOffset, std::ios::beg);
+                if (!texl) {
+                    texl = new mt5::TEXL(stream);
+                } else {
+                    throw new std::runtime_error("TEXL node already exists!");
+                }
+            } else if (nodeHeader.signature == 0x4C525450) { //PTRL
+                if (!ptrl) {
+                    ptrl = new mt5::PTRL(stream);
+                } else {
+                    throw new std::runtime_error("PTRL node already exists!");
+                }
+            } else if (nodeHeader.signature == 0x4E584554) { // TEXN
+                stream.seekg(nodeOffset, std::ios::beg);
+                TEXN texn;
+                texn.read(stream);
+                texnEntries.push_back(texn);
+            }
+            stream.seekg(nodeOffset + nodeHeader.size, std::ios::beg);
+        }
 
+        // check if texture count is satisfied
+        if (texd) {
+            uint64_t textureCount = texnEntries.size();
+            if (name) { textureCount += name->textureIDs.size(); }
+            if (texd->textureCount != textureCount) {
+                throw new std::runtime_error("Found textures don't match the given texture count!");
+            }
+        }
 	}
 
-	virtual void _write(std::ostream& stream) {
+    void _write(std::ostream& stream) {
 		stream.write(reinterpret_cast<char*>(&header), sizeof(MT5::Header));
 	}
 
-	virtual bool _isValid(unsigned char signature)
+    bool _isValid(unsigned char signature)
 	{
 		if (this->signature != signature)
 			return false;

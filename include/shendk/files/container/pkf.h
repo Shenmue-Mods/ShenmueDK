@@ -8,6 +8,7 @@
 
 #include "shendk/files/file.h"
 #include "shendk/files/container/gz.h"
+#include "shendk/files/container/ipac.h"
 #include "shendk/utils/memstream.h"
 
 namespace fs = std::filesystem;
@@ -40,12 +41,11 @@ struct PKF : File {
 
     PKF::Header header;
     std::vector<PKF::Entry> entries;
-    std::map<PKF::Entry*, char*> entriesData;
+    std::map<PKF::Entry*, char*> entriesData; // TODO: memory leak
+    IPAC* ipac = nullptr;
 
 protected:
     virtual void _read(std::istream& stream) {
-        int64_t baseOffset = stream.tellg();
-
         std::istream* _stream = &stream;
 
         // decompress if necessary
@@ -90,11 +90,15 @@ protected:
             _stream->read(buffer, bufferSize);
             entriesData.insert({&entry, buffer});
         }
+
+        // read ipac if necessary
+        if (!stream.eof()) {
+            ipac = new IPAC();
+            ipac->read(stream);
+        }
     }
 
     virtual void _write(std::ostream& stream) {
-        int64_t baseOffset = stream.tellp();
-
         // skip header
         stream.seekp(sizeof(PKF::Header), std::ios::cur);
 
@@ -112,6 +116,12 @@ protected:
         // write header
         stream.seekp(baseOffset, std::ios::beg);
         stream.write(reinterpret_cast<char*>(&header), sizeof(PKF::Header));
+        stream.seekp(baseOffset + header.contentSize, std::ios::beg);
+
+        // write ipac if necessary
+        if (ipac != nullptr) {
+            ipac->write(stream);
+        }
     }
 
 	virtual bool _isValid(unsigned int signature)

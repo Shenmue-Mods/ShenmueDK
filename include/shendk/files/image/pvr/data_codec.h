@@ -7,7 +7,7 @@
 
 #include "shendk/utils/math.h"
 #include "shendk/utils/twiddle.h"
-#include "shendk/files/texture/pvr/pixel_codec.h"
+#include "shendk/files/image/pvr/pixel_codec.h"
 
 namespace shendk {
 namespace pvr {
@@ -69,6 +69,7 @@ protected:
 
 
 struct SquareTwiddled : public DataCodec {
+
     bool canEncode() { return true; }
     uint16_t bpp() { return pixelCodec->bpp(); }
 

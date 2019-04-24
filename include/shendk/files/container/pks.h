@@ -37,8 +37,6 @@ struct PKS : File {
 
 protected:
     virtual void _read(std::istream& stream) {
-        int64_t baseOffset = stream.tellg();
-
         std::istream* _stream = &stream;
 
         if (GZ::testGzip(stream)) {

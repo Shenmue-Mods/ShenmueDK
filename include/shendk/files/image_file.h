@@ -9,10 +9,16 @@
 
 namespace shendk {
 
-struct Texture : File {
+struct ImageFile : File {
+
+    std::shared_ptr<Image> getImage(uint8_t mipmap = 0) {
+        if (mipmap >= mipmaps.size()) {
+            mipmap = mipmaps.size() - 1;
+        }
+        return mipmaps[mipmap];
+    }
 
     std::vector<std::shared_ptr<Image>> mipmaps;
-    TextureID textureID;
 
 };
 

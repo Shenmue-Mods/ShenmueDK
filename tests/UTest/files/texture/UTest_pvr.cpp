@@ -2,8 +2,8 @@
 
 #include <fstream>
 
-#include "shendk/files/texture/pvr.h"
-#include "shendk/files/texture/pvr/formats.h"
+#include "shendk/files/image/pvr.h"
+#include "shendk/files/image/pvr/formats.h"
 
 namespace {
 

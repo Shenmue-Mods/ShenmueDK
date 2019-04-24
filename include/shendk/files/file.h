@@ -31,6 +31,7 @@ namespace shendk {
         }
 
         void read(std::istream& stream) {
+            baseOffset = stream.tellg();
             _read(stream);
         }
 
@@ -41,7 +42,7 @@ namespace shendk {
         void write(const std::string& filepath) {
             std::ofstream fstream(filepath, std::ios::binary);
             if (fstream.is_open()) {
-                _write(fstream);
+                write(fstream);
                 fstream.close();
             }
             else {
@@ -50,6 +51,7 @@ namespace shendk {
         }
 
         void write(std::ostream& stream) {
+            baseOffset = stream.tellp();
             _write(stream);
         }
 
@@ -65,5 +67,7 @@ namespace shendk {
         virtual bool _isValid(unsigned int signature) = 0;
         virtual void _read(std::istream& stream) = 0;
         virtual void _write(std::ostream& stream) = 0;
+
+        int64_t baseOffset;
 	};
 }

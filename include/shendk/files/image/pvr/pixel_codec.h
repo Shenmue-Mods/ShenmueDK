@@ -5,20 +5,20 @@
 #include <algorithm>
 
 #include "shendk/utils/math.h"
-#include "shendk/files/texture/pvr/formats.h"
+#include "shendk/files/image/pvr/formats.h"
 
 namespace shendk {
 namespace pvr {
 
 struct PixelCodec {
 
+    virtual ~PixelCodec() {}
+
     virtual bool canEncode() = 0; // TODO: we can encode every available codec (remove this)
     virtual uint16_t bpp() = 0;
 
     virtual void decodePixel(uint8_t* src, uint64_t srcIndex, uint8_t* dst, uint64_t dstIndex) = 0;
     virtual void encodePixel(uint8_t* src, uint64_t srcIndex, uint8_t* dst, uint64_t dstIndex) = 0;
-
-    virtual ~PixelCodec() {}
 
     uint8_t* decodePalette(uint8_t* src, uint64_t srcIndex, uint32_t numEntries) {
 
@@ -45,6 +45,8 @@ struct PixelCodec {
 
 struct ARGB1555 : public PixelCodec {
 
+    virtual ~ARGB1555() {}
+
     bool canEncode() { return true; }
     uint16_t bpp() { return 16; }
 
@@ -68,6 +70,9 @@ struct ARGB1555 : public PixelCodec {
 };
 
 struct RGB565 : public PixelCodec {
+
+    virtual ~RGB565() {}
+
     bool canEncode() { return true; }
     uint16_t bpp() { return 16; }
 
@@ -90,6 +95,9 @@ struct RGB565 : public PixelCodec {
 };
 
 struct ARGB4444 : public PixelCodec {
+
+    virtual ~ARGB4444() {}
+
     bool canEncode() { return true; }
     uint16_t bpp() { return 16; }
 
@@ -113,6 +121,9 @@ struct ARGB4444 : public PixelCodec {
 };
 
 struct YUV422 : public PixelCodec {
+
+    virtual ~YUV422() {}
+
     bool canEncode() { return true; }
     uint16_t bpp() { return 32; } // using 32 Bpp because YUV requires two pixels to decode one pixel
 
@@ -123,13 +134,13 @@ struct YUV422 : public PixelCodec {
         int Y0 = (pixel1 & 0xFF00) >> 8, U = (pixel1 & 0x00FF);
         int Y1 = (pixel2 & 0xFF00) >> 8, V = (pixel2 & 0x00FF);
 
-        uint8_t r1 = std::clamp<uint8_t>(Y0 + 1.375 * (V - 128), 0, 255);
-        uint8_t g1 = std::clamp<uint8_t>(Y0 - 0.6875 * (V - 128) - 0.34375 * (U - 128), 0, 255);
-        uint8_t b1 = std::clamp<uint8_t>(Y0 + 1.71875 * (U - 128), 0, 255);
+        uint8_t r1 = std::clamp<uint8_t>(static_cast<uint8_t>(Y0 + 1.375 * (V - 128.0)), 0, 255);
+        uint8_t g1 = std::clamp<uint8_t>(static_cast<uint8_t>(Y0 - 0.6875 * (V - 128.0) - 0.34375 * (U - 128)), 0, 255);
+        uint8_t b1 = std::clamp<uint8_t>(static_cast<uint8_t>(Y0 + 1.71875 * (U - 128)), 0, 255);
 
-        uint8_t r2 = std::clamp<uint8_t>(Y1 + 1.375 * (V - 128), 0, 255);
-        uint8_t g2 = std::clamp<uint8_t>(Y1 - 0.6875 * (V - 128) - 0.34375 * (U - 128), 0, 255);
-        uint8_t b2 = std::clamp<uint8_t>(Y1 + 1.71875 * (U - 128), 0, 255);
+        uint8_t r2 = std::clamp<uint8_t>(static_cast<uint8_t>(Y1 + 1.375 * (V - 128)), 0, 255);
+        uint8_t g2 = std::clamp<uint8_t>(static_cast<uint8_t>(Y1 - 0.6875 * (V - 128) - 0.34375 * (U - 128)), 0, 255);
+        uint8_t b2 = std::clamp<uint8_t>(static_cast<uint8_t>(Y1 + 1.71875 * (U - 128)), 0, 255);
 
         dst[dstIndex + 3] = 0xFF;
         dst[dstIndex + 2] = r1;
@@ -172,6 +183,9 @@ struct YUV422 : public PixelCodec {
 };
 
 struct BUMP88 : public PixelCodec {
+
+    virtual ~BUMP88() {}
+
     bool canEncode() { return true; }
     uint16_t bpp() { return 16; }
 
@@ -228,6 +242,9 @@ struct BUMP88 : public PixelCodec {
 };
 
 struct RGB555 : public PixelCodec {
+
+    virtual ~RGB555() {}
+
     bool canEncode() { return true; }
     uint16_t bpp() { return 16; }
 
@@ -250,6 +267,9 @@ struct RGB555 : public PixelCodec {
 };
 
 struct ARGB8888 : public PixelCodec {
+
+    virtual ~ARGB8888() {}
+
     bool canEncode() { return true; }
     uint16_t bpp() { return 16; }
 

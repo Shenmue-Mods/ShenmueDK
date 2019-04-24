@@ -8,11 +8,50 @@
 #include "eigen3/Eigen/Geometry"
 
 #include "shendk/files/file.h"
-#include "shendk/files/texture/texture.h"
+#include "shendk/types/texture.h"
 #include "shendk/utils/math.h"
 
 namespace shendk {
 
+enum class BoneID : uint8_t {
+    Spine = 1,
+    Hips = 14,
+    RightUpperLeg = 16,
+    RightLowerLeg = 17,
+    RightFoot = 18,
+    LeftUpperLeg = 21,
+    LeftLowerLeg = 22,
+    LeftFoot = 23,
+    RightShoulder = 4,
+    RightUpperArm = 5,
+    RightLowerArm = 6,
+    RightWrist = 7,
+    RightHand = 191,
+    LeftShoulder = 9,
+    LeftUpperArm = 10,
+    LeftLowerArm = 11,
+    LeftWrist = 12,
+    LeftHand = 190,
+    Head = 189,
+    Jaw = 188,
+    None = 0xFF
+};
+
+enum class TypeID : uint8_t {
+    Unknown = 0x00, // Sometimes used by character bones (still rendered tho)
+    Static = 0xFF
+};
+
+enum class LayerID : uint8_t {
+    Static = 0x00,   // Always rendered
+    Trigger = 0x02,  // Not rendered
+    Unknown = 0x06,  // Mesh fence, unusable door, background pipes
+    Unknown2 = 0x09, // Out of bounds terrain,
+    Unknown3 = 0x04, // Lamp mesh, Roof flag post, some wall?, some windows?
+    Unknown4 = 0x11, // Lamps
+    Unknown5 = 0x14, // windows
+    Unknown6 = 0x16, // background meshes
+};
 
 enum class TextureWrapMode {
     Clamp,
@@ -27,6 +66,7 @@ enum class PrimitiveType {
 
 struct Material {
     uint32_t textureIndex;
+    Texture* texture;
     TextureWrapMode textureWrapMode;
     bool unlit;
     bool transparent;
@@ -110,49 +150,11 @@ struct ModelNode {
 
 };
 
-struct Model : File {
+struct Model {
 
     // Model ID = {0x00;LayerID;TypeID;BoneID}
 
-    enum class BoneID : uint8_t {
-        Spine = 1,
-        Hips = 14,
-        RightUpperLeg = 16,
-        RightLowerLeg = 17,
-        RightFoot = 18,
-        LeftUpperLeg = 21,
-        LeftLowerLeg = 22,
-        LeftFoot = 23,
-        RightShoulder = 4,
-        RightUpperArm = 5,
-        RightLowerArm = 6,
-        RightWrist = 7,
-        RightHand = 191,
-        LeftShoulder = 9,
-        LeftUpperArm = 10,
-        LeftLowerArm = 11,
-        LeftWrist = 12,
-        LeftHand = 190,
-        Head = 189,
-        Jaw = 188,
-        None = 0xFF
-    };
 
-    enum class TypeID : uint8_t {
-        Unknown = 0x00, // Sometimes used by character bones (still rendered tho)
-        Static = 0xFF
-    };
-
-    enum class LayerID : uint8_t {
-        Static = 0x00,   // Always rendered
-        Trigger = 0x02,  // Not rendered
-        Unknown = 0x06,  // Mesh fence, unusable door, background pipes
-        Unknown2 = 0x09, // Out of bounds terrain,
-        Unknown3 = 0x04, // Lamp mesh, Roof flag post, some wall?, some windows?
-        Unknown4 = 0x11, // Lamps
-        Unknown5 = 0x14, // windows
-        Unknown6 = 0x16, // background meshes
-    };
 
     ModelNode* rootNode;
     std::vector<std::shared_ptr<Texture>> textures;
