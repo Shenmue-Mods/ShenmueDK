@@ -17,10 +17,8 @@ namespace shendk {
 struct GZ : File {
 
     GZ() = default;
-
-    GZ(const std::string& filepath) {
-        read(filepath);
-    }
+    GZ(const std::string& filepath) { read(filepath); }
+    GZ(std::istream& stream) { read(stream); }
 
     ~GZ() {}
 

@@ -3,8 +3,9 @@
 #include <stdint.h>
 
 namespace shendk {
+namespace pvr {
 
-    uint64_t* createTwiddleMap(uint64_t size) {
+    static uint64_t* createTwiddleMap(uint64_t size) {
         uint64_t* twiddleMap = new uint64_t[size];
         for (uint64_t i = 0; i < size; i++) {
             twiddleMap[i] = 0;
@@ -16,4 +17,4 @@ namespace shendk {
     }
 
 }
-
+}

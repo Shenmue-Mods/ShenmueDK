@@ -9,10 +9,10 @@ namespace {
 
     TEST(PVR, read_write)
 	{
-        std::ofstream outFile("H:\\test_out.bin");
+        std::ofstream outFile("H:\\UTest\\test_out.bin");
 
         shendk::PVR pvr;
-        pvr.read("H:\\test.pvr");
+        pvr.read("H:\\UTest\\test.pvr");
         std::cout << shendk::pvr::DataFormatStrings[pvr.header.dataFormat] << std::endl;
         std::cout << shendk::pvr::PixelFormatStrings[pvr.header.pixelFormat] << std::endl;
 

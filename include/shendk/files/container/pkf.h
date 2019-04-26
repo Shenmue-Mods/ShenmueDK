@@ -9,6 +9,9 @@
 #include "shendk/files/file.h"
 #include "shendk/files/container/gz.h"
 #include "shendk/files/container/ipac.h"
+#include "shendk/node/node.h"
+#include "shendk/node/texn.h"
+#include "shendk/node/dumy.h"
 #include "shendk/utils/memstream.h"
 
 namespace fs = std::filesystem;
@@ -26,22 +29,14 @@ struct PKF : File {
         uint32_t fileCount;
     };
 
-    struct Entry {
-        char token[4];
-        uint32_t size;
-    };
-
     PKF() = default;
-
-    PKF(const std::string& filepath) {
-        read(filepath);
-    }
+    PKF(std::istream& stream) { read(stream); }
+    PKF(const std::string& filepath) { read(filepath); }
 
     ~PKF() {}
 
     PKF::Header header;
-    std::vector<PKF::Entry> entries;
-    std::map<PKF::Entry*, char*> entriesData; // TODO: memory leak
+    std::vector<TEXN> textures;
     IPAC* ipac = nullptr;
 
 protected:
@@ -66,35 +61,25 @@ protected:
 			throw new std::runtime_error("Invalid signature for PKF file!\n");
 
         // check for DUMY entry
-        PKF::Entry dummyEntry;
-        _stream->read(reinterpret_cast<char*>(&dummyEntry), sizeof(PKF::Entry));
-        if (strncmp(dummyEntry.token, "DUMY", 4) == 0) {
-            _stream->seekg(dummyEntry.size - sizeof(PKF::Entry), std::ios::cur);
-        } else {
-            _stream->seekg(_stream->tellg() - static_cast<int64_t>(sizeof(PKF::Entry)), std::ios::cur);
+        Node::Header dummyEntry;
+        _stream->read(reinterpret_cast<char*>(&dummyEntry), sizeof(Node::Header));
+        _stream->seekg(baseOffset + sizeof(PKF::Header), std::ios::beg);
+        if (dummyEntry.signature == 0x594D5544) {
+            DUMY dumy(*_stream);
         }
 
-        // read entries
+        // read texture entries
         for (uint32_t i = 0; i < header.fileCount; i++) {
             if (_stream->eof()) break;
-
-            // read entry
-            PKF::Entry entry;
-            _stream->read(reinterpret_cast<char*>(&entry), sizeof(PKF::Entry));
-            if (strcmp(entry.token, "") == 0) continue; // fix for broken pkf files
-            entries.push_back(entry);
-
-            // read entry data
-            uint32_t bufferSize = entry.size - sizeof(PKF::Entry);
-            char* buffer = new char[bufferSize];
-            _stream->read(buffer, bufferSize);
-            entriesData.insert({&entry, buffer});
+            TEXN entry(*_stream);
+            textures.push_back(entry);
         }
 
         // read ipac if necessary
+        _stream->seekg(baseOffset + header.contentSize, std::ios::beg);
         if (!stream.eof()) {
             ipac = new IPAC();
-            ipac->read(stream);
+            ipac->read(*_stream);
         }
     }
 
@@ -102,15 +87,17 @@ protected:
         // skip header
         stream.seekp(sizeof(PKF::Header), std::ios::cur);
 
-        // write entries
-        for (auto& entry : entries) {
-            char* buffer = entriesData[&entry];
-            stream.write(reinterpret_cast<char*>(&entry), sizeof(PKF::Entry));
-            stream.write(buffer, entry.size - sizeof(PKF::Entry));
+        // write dumy
+        DUMY dummy;
+        dummy.write(stream);
+
+        // write texture entries
+        for (auto& entry : textures) {
+            entry.write(stream);
         }
 
         // update headers
-        header.fileCount = static_cast<uint32_t>(entries.size());
+        header.fileCount = static_cast<uint32_t>(textures.size());
         header.contentSize = static_cast<uint32_t>(stream.tellp() - baseOffset);
 
         // write header

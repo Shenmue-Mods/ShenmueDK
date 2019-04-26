@@ -38,19 +38,24 @@ struct MT5Mesh {
         uint16_t textureIndex = 0;
         //Attributes attributes;
 
+        int64_t instructionOffset;
         stream.seekg(header.facesOffset, std::ios::beg);
         while (!stream.eof()) {
             InstructionType stripType;
+            instructionOffset = stream.tellg();
             stream.read(reinterpret_cast<char*>(&stripType), sizeof(uint16_t));
+            stream.seekg(instructionOffset, std::ios::beg);
 
-            if (stripType == InstructionType::End) {
+            if (stripType == InstructionType::End_0080) {
                 break;
             }
 
             switch(stripType) {
-                case InstructionType::Zero:
+                case InstructionType::Zero_0000:
+                    instructions.push_back(Instruction(stream));
                     continue;
-                case InstructionType::Skip:
+                case InstructionType::Skip_FFFF:
+                    instructions.push_back(Instruction(stream));
                     continue;
 
                 case InstructionType::StripAttrib_0200:
@@ -59,25 +64,25 @@ struct MT5Mesh {
                 case InstructionType::StripAttrib_0500:
                 case InstructionType::StripAttrib_0600:
                 case InstructionType::StripAttrib_0700:
-                    // TODO: implement
+                    instructions.push_back(InAttributes(stream));
                     continue;
 
-                case InstructionType::Texture:
-                    // TODO: implement
+                case InstructionType::Texture_0900:
+                    instructions.push_back(InTexture(stream));
                     continue;
 
-                case InstructionType::Unknown_0800:
-                case InstructionType::Unknown_0A00:
-                    // TODO: implement
+                case InstructionType::Unknown1_0800:
+                case InstructionType::Unknown1_0A00:
+                    instructions.push_back(InUnknown1(stream));
                     continue;
 
-                case InstructionType::Unknown_0B00:
-                    // TODO: implement
+                case InstructionType::Unknown2_0B00:
+                    instructions.push_back(InUnknown2(stream));
                     continue;
 
-                case InstructionType::Unknown_0E00:
-                case InstructionType::Unknown_0F00:
-                    // TODO: implement
+                case InstructionType::Unknown3_0E00:
+                case InstructionType::Unknown3_0F00:
+                    instructions.push_back(InUnknown3(stream));
                     continue;
 
                 case InstructionType::Strip_1000:
@@ -90,7 +95,7 @@ struct MT5Mesh {
                 case InstructionType::Strip_1A00:
                 case InstructionType::Strip_1B00:
                 case InstructionType::Strip_1C00:
-                    // TODO: implement
+                    instructions.push_back(InStrip(stream));
                     continue;
 
                 default:
@@ -107,6 +112,7 @@ struct MT5Mesh {
     MT5Node* parentNode;
 
     MT5Mesh::Header header;
+    std::vector<Instruction> instructions;
 };
 
 }

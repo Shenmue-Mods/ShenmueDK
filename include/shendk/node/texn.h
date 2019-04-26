@@ -10,6 +10,8 @@ namespace shendk {
 
 struct TEXN : public Node {
 
+    TEXN() {}
+    TEXN(std::istream& stream) { read(stream); }
     virtual ~TEXN() {}
 
     TextureID textureID;
@@ -17,14 +19,14 @@ struct TEXN : public Node {
 
 protected:
 
-    void _write(std::ostream& stream) {
-        stream.write(reinterpret_cast<char*>(&textureID), sizeof(TextureID));
-        pvrt.write(stream);
-    }
-
     void _read(std::istream& stream) {
         stream.read(reinterpret_cast<char*>(&textureID), sizeof(TextureID));
         pvrt.read(stream);
+    }
+
+    void _write(std::ostream& stream) {
+        stream.write(reinterpret_cast<char*>(&textureID), sizeof(TextureID));
+        pvrt.write(stream);
     }
 
 };

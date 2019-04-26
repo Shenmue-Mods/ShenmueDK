@@ -11,7 +11,15 @@ struct SPR : ContainerFile {
 
     typedef TEXN Entry;
 
+    SPR() = default;
+    SPR(std::istream& stream) { read(stream); }
+    SPR(const std::string& filepath) { read(filepath); }
+
     std::vector<TEXN> entries;
+
+    void unpack(const std::string& folder) {
+        // TODO: implement
+    }
 
 protected:
 

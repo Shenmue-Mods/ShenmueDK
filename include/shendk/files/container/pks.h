@@ -25,10 +25,8 @@ struct PKS : File {
     };
 
     PKS() = default;
-
-    PKS(const std::string& filepath) {
-        read(filepath);
-    }
+    PKS(std::istream& stream) { read(stream); }
+    PKS(const std::string& filepath) { read(filepath); }
 
     ~PKS() {}
 

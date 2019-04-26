@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "shendk/utils/math.h"
-#include "shendk/utils/twiddle.h"
+#include "shendk/files/image/pvr/twiddle.h"
 #include "shendk/files/image/pvr/pixel_codec.h"
 
 namespace shendk {

@@ -12,6 +12,77 @@ namespace chrd {
 
 struct CHRS : Node {
 
+    std::set<std::string> Tokens1 {
+        "Flags",
+        "Group",
+        "CommonMotionWork"
+    };
+
+        std::set<std::string> Tokens2 {
+            "Player",
+            "Image",
+            "Entry",
+            "Flags",
+            "Coli",
+            "Human",
+            "Object",
+            "Party",
+            "Face",
+            "Hand",
+            "Item",
+            "Range",
+            "ColiOff",
+            "LineWalk",
+            "ForkLift",
+            "MotClip",
+            "Shadow",
+            "ShadowOff",
+            "Book",
+            "KeysRing",
+            "Fight",
+            "Group",
+            "MotOnly",
+            "CasetteDeck",
+            "CasetteTape",
+            "Handcuffs",
+            "Cloth",
+            "TinyMot",
+            "Tel",
+            "Step",
+            "Walk3D",
+            "CommonMotionWork",
+            "FootMark",
+            "RefBoard",
+            "Osage",
+            "Knife",
+            "TParty",
+            "Trans",
+            "Vehicle",
+            "Bone",
+            "DummyChara",
+            "Bicycle",
+            "Patrol",
+            "Vender",
+            "LowQuality",
+            "DesignOK",
+            "Clock",
+            "ProjectionTrans",
+            "TailLamp",
+            "TinyGame",
+            "Calendar",
+            "CutMvShadow",
+            "ObjBlur",
+            "ForceTrans",
+            "ColiOn",
+            };
+
+    std::set<std::string> Tokens3 {
+        "Character",
+        "DefImage",
+        "LocalPos",
+        "PreLoad"
+    };
+
     struct Entry {
         std::string func;
         std::string model;

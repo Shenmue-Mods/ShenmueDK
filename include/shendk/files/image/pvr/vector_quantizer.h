@@ -9,7 +9,7 @@
 
 #include "shendk/utils/math.h"
 #include "shendk/types/image.h"
-#include "shendk/utils/twiddle.h"
+#include "shendk/files/image/pvr/twiddle.h"
 
 namespace shendk {
 namespace pvr {

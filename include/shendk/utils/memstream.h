@@ -1,3 +1,5 @@
+#pragma once
+
 #include <istream>
 #include <ostream>
 #include <streambuf>
@@ -26,17 +28,16 @@ public:
         m_buffer = new char_type[4];
         m_bufferSize = 4;
         std::memset(m_buffer, 0, 4);
-        this->setp(m_buffer, m_buffer + m_bufferSize);
-        this->setg(m_buffer, m_buffer, m_buffer + m_bufferSize);
+        setOut(m_buffer, m_buffer, m_buffer + m_bufferSize);
+        setIn(m_buffer, m_buffer, m_buffer + m_bufferSize);
     }
 
     basic_mstreambuf(char_type* buffer, size_t size) {
         m_bufferOwner = false; // TODO: take ownership of memory?
         m_buffer = buffer;
         m_bufferSize = size;
-        this->setp(m_buffer, m_buffer + m_bufferSize);
-        this->pbump(m_bufferSize);
-        this->setg(m_buffer, m_buffer, m_buffer + m_bufferSize);
+        setOut(m_buffer, m_buffer + m_bufferSize, m_buffer + m_bufferSize);
+        setIn(m_buffer, m_buffer, m_buffer + m_bufferSize);
     }
 
     ~basic_mstreambuf() {
@@ -47,7 +48,7 @@ public:
 
     int overflow( int c = EOF )
     {
-        if (Base::_M_out_cur >= Base::_M_out_beg + m_bufferSize) {
+        if (out_cur() >= out_beg() + m_bufferSize) {
             size_t oldSize = m_bufferSize;
             m_bufferSize = m_bufferSize << 1;
             if (m_bufferSize >= SIZE_MAX) {
@@ -55,19 +56,19 @@ public:
             } else {
                 // allocate more memory
                 m_buffer = reinterpret_cast<char*>(realloc(m_buffer, m_bufferSize));
-                this->setp(m_buffer, m_buffer + m_bufferSize);
-                this->pbump(oldSize);
-                this->setg(m_buffer, m_buffer, m_buffer + m_bufferSize);
+                setOut(m_buffer, m_buffer + oldSize, m_buffer + m_bufferSize);
+                int inCurOffset = static_cast<int>(in_cur() - in_beg());
+                setIn(m_buffer, m_buffer + inCurOffset, m_buffer + m_bufferSize);
                 std::memset(m_buffer + oldSize, 0, m_bufferSize - oldSize);
             }
         } else {
-            Base::_M_out_end += 1;
-            Base::_M_in_end += 1;
+            setIn(in_beg(), in_cur(), in_end() + 1);
+            setOut(out_beg(), out_cur(), out_end() + 1);
         }
 
         // write character
-        *this->pptr() = static_cast<char_type>(c);
-        this->pbump(1);
+        *out_cur() = static_cast<char_type>(c);
+        Base::pbump(1);
         return c;
     }
 
@@ -79,52 +80,64 @@ public:
                      std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out)
     {
         if (dir == std::ios_base::beg) {
-            if (Base::_M_in_beg + off > Base::_M_in_end ||
-                Base::_M_in_beg + off < Base::_M_in_beg) {
+            if (in_beg() + off > in_end() ||
+                in_beg() + off < in_beg()) {
                 return -1;
             }
             if (mode == std::ios_base::in) {
-                Base::_M_in_cur = Base::_M_in_beg + off;
+                setIn(in_beg(), in_beg() + off, in_end());
+                return in_cur() - in_beg();
             }
             if (mode == std::ios_base::out) {
-                Base::_M_out_cur = Base::_M_in_beg + off;
+                setOut(out_beg(), out_beg() + off, out_end());
+                return out_cur() - out_beg();
             }
         } else if (dir == std::ios_base::cur) {
             if (mode == std::ios_base::in) {
-                if (Base::_M_in_cur + off > Base::_M_in_end ||
-                    Base::_M_in_cur + off < Base::_M_in_beg) {
+                if (in_cur() + off > in_end() ||
+                    in_cur() + off < in_beg()) {
                     return -1;
                 }
-                Base::_M_in_cur = Base::_M_in_cur + off;
+                setIn(in_beg(), in_cur() + off, in_end());
+                return in_cur() - in_beg();
             }
             if (mode == std::ios_base::out) {
-                if (Base::_M_out_cur + off > Base::_M_in_end ||
-                    Base::_M_out_cur + off < Base::_M_in_beg) {
+                if (out_cur() + off > out_end() ||
+                    out_cur() + off < out_beg()) {
                     return -1;
                 }
-                Base::_M_out_cur = Base::_M_out_cur + off;
+                setOut(out_beg(), out_cur() + off, out_end());
+                return out_cur() - out_beg();
             }
         } else if (dir == std::ios_base::end) {
+            if (in_end() - off > in_end() ||
+                in_end() - off < in_beg()) {
+				return -1;
+			}
             if (mode == std::ios_base::in) {
-                Base::_M_in_cur = Base::_M_in_end - off;
+                setIn(in_beg(), in_end() - off, in_end());
+                return in_cur() - in_beg();
             }
             if (mode == std::ios_base::out) {
-                Base::_M_out_cur = Base::_M_in_end - off;
+                setOut(out_beg(), out_end() - off, out_end());
+                return out_cur() - out_beg();
             }
         }
         return 0;
     }
 
     pos_type seekpos(pos_type pos, std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out) {
-        if (Base::_M_in_beg + pos > Base::_M_in_end ||
-            Base::_M_in_beg + pos < Base::_M_in_beg) {
+        if (in_beg() + pos > in_end() ||
+            in_beg() + pos < in_beg()) {
             return -1;
         }
         if (mode == std::ios_base::in) {
-            Base::_M_in_cur = Base::_M_in_beg + pos;
+            setIn(in_beg(), in_beg() + pos, in_end());
+            return in_cur() - in_beg();
         }
         if (mode == std::ios_base::out) {
-            Base::_M_out_cur = Base::_M_in_beg + pos;
+            setOut(out_beg(), out_beg() + pos, out_end());
+            return out_cur() - out_beg();
         }
         return 0;
     }
@@ -135,7 +148,7 @@ public:
     }
 
     ptrdiff_t showmanyc() {
-        return this->egptr() - this->gptr();
+        return in_end() - in_cur();
     }
 
     char_type* getBuffer(size_t& bufferSize) {
@@ -144,6 +157,24 @@ public:
     }
 
 private:
+
+    char_type* in_beg() { return Base::eback(); }
+    char_type* in_cur() { return Base::gptr(); }
+    char_type* in_end() { return Base::egptr(); }
+
+    char_type* out_beg() { return Base::pbase(); }
+    char_type* out_cur() { return Base::pptr(); }
+    char_type* out_end() { return Base::epptr(); }
+
+    void setIn(char_type* beg, char_type* cur, char_type* end) {
+        Base::setg(beg, cur, end);
+    }
+
+    void setOut(char_type* beg, char_type* cur, char_type* end) {
+        Base::setp(beg, end);
+        Base::pbump(static_cast<int>(cur - beg));
+    }
+
     char_type* m_buffer;
     size_t m_bufferSize;
     bool m_bufferOwner;

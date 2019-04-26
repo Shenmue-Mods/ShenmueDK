@@ -60,7 +60,7 @@ enum class CompressionFormat
     RLE
 };
 
-std::map<PixelFormat, std::string> PixelFormatStrings {
+static std::map<PixelFormat, std::string> PixelFormatStrings {
     {PixelFormat::ARGB1555, "ARGB1555"},
     {PixelFormat::RGB565, "RGB565"},
     {PixelFormat::ARGB4444, "ARGB4444"},
@@ -73,7 +73,7 @@ std::map<PixelFormat, std::string> PixelFormatStrings {
     {PixelFormat::UNKNOWN, "UNKNOWN"}
 };
 
-std::map<DataFormat, std::string> DataFormatStrings {
+static std::map<DataFormat, std::string> DataFormatStrings {
     {DataFormat::SQUARE_TWIDDLED, "SQUARE_TWIDDLED"},
     {DataFormat::SQUARE_TWIDDLED_MIPMAP, "SQUARE_TWIDDLED_MIPMAP"},
     {DataFormat::VECTOR_QUANTIZATION, "VECTOR_QUANTIZATION"},
@@ -97,7 +97,7 @@ std::map<DataFormat, std::string> DataFormatStrings {
     {DataFormat::UNKNOWN, "UNKNOWN"},
 };
 
-std::map<CompressionFormat, std::string> CompressionFormatStrings {
+static std::map<CompressionFormat, std::string> CompressionFormatStrings {
     {CompressionFormat::RLE, "RLE"},
     {CompressionFormat::NONE, "NONE"}
 };

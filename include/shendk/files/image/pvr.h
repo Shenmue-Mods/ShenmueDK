@@ -31,10 +31,8 @@ struct PVR : ImageFile {
     };
 
     PVR() = default;
-
-    PVR(const std::string& filepath) {
-        read(filepath);
-    }
+    PVR(const std::string& filepath) { read(filepath); }
+    PVR(std::istream& stream) { read(stream); }
 
     ~PVR() {}
 

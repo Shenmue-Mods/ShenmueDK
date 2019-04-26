@@ -23,20 +23,46 @@ else()
 endif()
 
 # options
-option(BUILD_TESTS "Build test programs" OFF)
+option(BUILD_TESTS "Build test programs" ON)
 
 # dependencies
-find_package(jsoncpp REQUIRED)
+
+#set(NV_SOURCE_DIR "third_party/nvidia-texture-tools")
+#IF(WIN32)
+#	# gnuwin32 paths:
+#	SET(GNUWIN32_PATH "${NV_SOURCE_DIR}/extern/gnuwin32")
+#	SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${GNUWIN32_PATH}/include")
+#	SET(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${GNUWIN32_PATH}/lib")
+#
+#	# Set GLUT path:
+#	SET(GLUT_ROOT_DIR "${NV_SOURCE_DIR}/extern/glut")
+#
+#	# Set FreeImage path:
+#	SET(FREEIMAGE_ROOT_DIR "${NV_SOURCE_DIR}/extern/FreeImage")
+#
+#ENDIF(WIN32)
+
+# zlib
 find_package(zlib REQUIRED)
 if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
     find_library(CXX_FILESYSTEM_SUPPORT NAMES stdc++fs)
 endif()
+# jsoncpp
+find_package(jsoncpp REQUIRED)
+# eigen3
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen3)
+
+#set(JSONCPP_WITH_TESTS OFF CACHE BOOL "Compile and (for jsoncpp_check) run JsonCpp test executables" FORCE)
+#add_subdirectory(third_party/jsoncpp)
+#add_subdirectory(third_party/eigen3)
+#include(cmake/NvidiaInclude.cmake)
 
 # sources and stuff
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/include)
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
+#INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/third_party/nvidia-texture-tools/src)
 
 # shendk library
 add_library(ShenmueDK ${SOURCES} ${HEADERS})
@@ -44,13 +70,17 @@ target_include_directories(ShenmueDK
     PUBLIC include
     PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
 )
+
 target_link_libraries(${PROJECT_NAME} jsoncpp)
 target_link_libraries(${PROJECT_NAME} stdc++fs)
 target_link_libraries(${PROJECT_NAME} z)
+#target_link_libraries(${PROJECT_NAME) nvcore)
+#target_link_libraries(${PROJECT_NAME) nvimage)
 
 # unit tests (gtest)
 if (BUILD_TESTS)
-  find_package(GTest REQUIRED)
+  #add_subdirectory(third_party/googletest)
+  find_package(GTest)
   include_directories(${GTEST_INCLUDE_DIRS})
   file(GLOB_RECURSE TEST_SOURCES tests/UTest/*.cpp tests/UTest/*.h)
   add_executable(shendk_test ${TEST_SOURCES})

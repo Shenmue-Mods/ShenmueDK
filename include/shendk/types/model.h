@@ -73,6 +73,7 @@ struct Material {
 };
 
 struct MeshSurface {
+    PrimitiveType type;
     Material material;
     std::vector<uint16_t> positionIndices;
     std::vector<uint16_t> normalIndices;

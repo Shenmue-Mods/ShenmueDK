@@ -8,7 +8,7 @@ namespace {
 
 TEST(GZ, read_write)
 {
-    std::ifstream file("H:\\gzip.gz", std::ios::binary);
+    std::ifstream file("H:\\UTest\\gzip.gz", std::ios::binary);
 
     /*if (!testGzip(file)) {
         FAIL();

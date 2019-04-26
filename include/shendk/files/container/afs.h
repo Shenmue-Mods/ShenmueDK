@@ -3,6 +3,7 @@
 #include <map>
 
 #include "shendk/files/container_file.h"
+#include "shendk/files/container/idx.h"
 
 namespace shendk {
 
@@ -30,11 +31,42 @@ struct AFS : ContainerFile {
         uint32_t fileSize;
     };
 
-    AFS() = default;
+    struct Entry {
 
-    AFS(const std::string& filepath) {
-        read(filepath);
-    }
+        Entry() {}
+
+        Entry(OffsetEntry offsetEntry)
+            : offset(offsetEntry)
+        {
+            data.resize(offsetEntry.fileSize);
+        }
+
+        Entry(OffsetEntry offsetEntry, MetaEntry metaEntry)
+            : offset(offsetEntry)
+            , meta(metaEntry)
+        {
+            data.resize(offsetEntry.fileSize);
+        }
+
+        void readData(std::istream& stream) {
+            stream.read(data.data(), offset.fileSize);
+        }
+
+        void writeData(std::ostream& stream) {
+            stream.write(data.data(), offset.fileSize);
+        }
+
+        OffsetEntry offset;
+        MetaEntry meta;
+        std::string idxFilename;
+
+    private:
+        std::vector<char> data;
+    };
+
+    AFS() = default;
+    AFS(const std::string& filepath) { read(filepath); }
+    AFS(std::istream& stream) { read(stream); }
 
     ~AFS() {}
 
@@ -42,10 +74,14 @@ struct AFS : ContainerFile {
         fs::create_directories(folder);
     }
 
+    void mapIdxFilenames(IDX& idx) {
+        for (int i = 0; i < entries.size(); i++) {
+            entries[i].idxFilename = idx.getFilename(i);
+        }
+    }
+
     AFS::Header header;
-    std::vector<AFS::OffsetEntry> entries;
-    std::vector<AFS::MetaEntry> entriesMeta;
-    std::map<AFS::OffsetEntry*, char*> entriesData;
+    std::vector<AFS::Entry> entries;
 
 protected:
     const uint32_t padding = 0x0800; // TODO: make padding adjustable
@@ -59,11 +95,14 @@ protected:
 		if (!isValid(header.signature))
 			throw new std::runtime_error("Invalid signature for AFS file!\n");
 
+        std::vector<AFS::OffsetEntry> entriesOffset;
+        std::vector<AFS::MetaEntry> entriesMeta;
+
         // read dictionary
         for (uint32_t i = 0; i < header.fileCount; i++) {
             AFS::OffsetEntry entry;
             stream.read(reinterpret_cast<char*>(&entry), sizeof(AFS::OffsetEntry));
-            entries.push_back(entry);
+            entriesOffset.push_back(entry);
         }
 
         // calculate meta section offset
@@ -72,7 +111,7 @@ protected:
             stream.seekg(baseOffset + maxPadding - 8, std::ios::beg);
         } else {
             uint32_t curPos = static_cast<uint32_t>(stream.tellg());
-            uint32_t offset = curPos + maxPadding - (curPos % padding);
+            uint32_t offset = curPos + padding - (curPos % padding);
             stream.seekg(baseOffset + offset - 8, std::ios::beg);
         }
         stream.read(reinterpret_cast<char*>(&metaOffset), sizeof(uint32_t));
@@ -80,7 +119,7 @@ protected:
 
         // read entry meta
         if (metaOffset != 0) {
-            stream.seekg(baseOffset + metaOffset - 8, std::ios::beg);
+            stream.seekg(baseOffset + metaOffset, std::ios::beg);
             for (uint32_t i = 0; i < header.fileCount; i++) {
                 AFS::MetaEntry entry;
                 stream.read(reinterpret_cast<char*>(&entry), sizeof(AFS::MetaEntry));
@@ -88,12 +127,20 @@ protected:
             }
         }
 
+        // combine offsets with metadata
+        for (int i = 0; i < entriesOffset.size(); i++) {
+            if (i >= entriesMeta.size()) {
+                AFS::Entry entry(entriesOffset[i]);
+                entries.push_back(entry);
+            } else {
+                entries.push_back(AFS::Entry(entriesOffset[i], entriesMeta[i]));
+            }
+        }
+
         // read entry data
         for (auto& entry : entries) {
-            stream.seekg(baseOffset + entry.fileOffset, std::ios::beg);
-            char* buffer = new char[entry.fileSize];
-            stream.read(buffer, entry.fileSize);
-            entriesData.insert({&entry, buffer});
+            stream.seekg(baseOffset + entry.offset.fileOffset, std::ios::beg);
+            entry.readData(stream);
         }
     }
 
@@ -109,8 +156,8 @@ protected:
         // calculate entry data offsets
         uint32_t offset = startOffset;
         for (auto& entry : entries) {
-            entry.fileOffset = offset;
-            offset += entry.fileSize;
+            entry.offset.fileOffset = offset;
+            offset += entry.offset.fileSize;
             offset += padding - (offset % padding); //sector padding
         }
 
@@ -120,7 +167,7 @@ protected:
 
         // write entry offsets
         for (auto& entry : entries) {
-            stream.write(reinterpret_cast<char*>(&entry), sizeof(AFS::OffsetEntry));
+            stream.write(reinterpret_cast<char*>(&entry.offset), sizeof(AFS::OffsetEntry));
         }
 
         // write meta offset
@@ -132,15 +179,14 @@ protected:
 
         // write entry data
         for (auto& entry : entries) {
-            stream.seekp(baseOffset + entry.fileOffset, std::ios::beg);
-            char* buffer = entriesData[&entry];
-            stream.write(buffer, entry.fileSize);
+            stream.seekp(baseOffset + entry.offset.fileOffset, std::ios::beg);
+            entry.writeData(stream);
         }
 
         // write meta entries
         stream.seekp(baseOffset + metaOffset, std::ios::beg);
-        for (auto& entry : entriesMeta) {
-            stream.write(reinterpret_cast<char*>(&entry), sizeof(AFS::MetaEntry));
+        for (auto& entry : entries) {
+            stream.write(reinterpret_cast<char*>(&entry.meta), sizeof(AFS::MetaEntry));
         }
     }
 

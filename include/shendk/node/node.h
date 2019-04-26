@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <vector>
 
 #include "shendk/utils/memstream.h"
 
@@ -18,13 +19,19 @@ struct Node {
     void read(std::istream& stream) {
         baseOffset = stream.tellg();
         stream.read(reinterpret_cast<char*>(&header), sizeof(Node::Header));
+
+        // check for invalid node
+        if (header.signature == 0 || header.size == 0) {
+            return;
+        }
+
         uint64_t bufferSize = header.size - sizeof(Node::Header);
         char* buffer = new char[bufferSize];
         stream.read(buffer, static_cast<int64_t>(bufferSize));
         imstream nodeStream(buffer, bufferSize);
         _read(nodeStream);
         delete[] buffer;
-        stream.seekg(baseOffset + header.size);
+        stream.seekg(baseOffset + header.size, std::ios::beg);
     }
 
     void write(std::ostream& stream) {
@@ -39,10 +46,9 @@ struct Node {
 
     Node::Header header;
 
-
 protected:
-    virtual void _read(std::istream& stream) = 0;
-    virtual void _write(std::ostream& stream) = 0;
+    virtual void _read(std::istream&) {}
+    virtual void _write(std::ostream&) {}
 
     int64_t baseOffset;
 
