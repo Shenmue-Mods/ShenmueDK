@@ -8,26 +8,12 @@
 namespace shendk {
 
 struct DUMY : public Node {
-
-    DUMY() {
-        data.resize(12);
-        memset(data.data(), 0, data.size());
-    }
-    DUMY(std::istream& stream) { read(stream); }
-
-    virtual ~DUMY() {}
-
+    DUMY();
+    DUMY(std::istream& stream);
+    virtual ~DUMY();
 protected:
-
-    void _read(std::istream& stream) {
-        data.resize(header.size - sizeof(Node::Header));
-        stream.read(data.data(), data.size());
-    }
-
-    void _write(std::ostream& stream) {
-        stream.write(data.data(), data.size());
-    }
-
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
     std::vector<char> data;
 };
 

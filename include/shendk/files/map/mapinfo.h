@@ -6,23 +6,14 @@ namespace shendk {
 
 struct MAPINFO : File {
 
-    MAPINFO() = default;
-
-    MAPINFO(const std::string& filepath) {
-        read(filepath);
-    }
-
-    ~MAPINFO() {}
+    MAPINFO();
+    MAPINFO(const std::string& filepath);
+    ~MAPINFO();
 
 protected:
-    virtual void _read(std::istream& stream) {
-
-    }
-
-    virtual void _write(std::ostream& stream) {
-
-    }
-
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
+    virtual bool _isValid(uint32_t signature);
 };
 
 }

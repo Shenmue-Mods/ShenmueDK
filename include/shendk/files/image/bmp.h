@@ -6,23 +6,14 @@ namespace shendk {
 
 struct BMP : ImageFile {
 
-    BMP() = default;
-
-    BMP(const std::string& filepath) {
-        read(filepath);
-    }
-
-    ~BMP() {}
+    BMP();
+    BMP(const std::string& filepath);
+    ~BMP();
 
 protected:
-    virtual void _read(std::istream& stream) {
-
-    }
-
-    virtual void _write(std::ostream& stream) {
-
-    }
-
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
+    virtual bool _isValid(uint32_t signature);
 };
 
 }

@@ -1,10 +1,11 @@
 #pragma once
 
 #include "shendk/types/model.h"
-#include "shendk/files/model/mt5/mt5_mesh.h"
 
 namespace shendk {
 namespace mt5 {
+
+struct MT5Mesh;
 
 struct MT5Node : ModelNode {
 
@@ -27,46 +28,15 @@ struct MT5Node : ModelNode {
         uint32_t unknown;
     };
 
-    MT5Node() {}
+    MT5Node();
+    MT5Node(std::istream& stream, int64_t baseOffset, MT5Node* par = nullptr);
+    virtual ~MT5Node();
 
-    MT5Node(std::istream& stream, int64_t baseOffset) {
-        read(stream, baseOffset);
-    }
-
-    virtual ~MT5Node() {}
-
-    void read(std::istream& stream , int64_t baseOffset) {
-        stream.read(reinterpret_cast<char*>(&data), sizeof(MT5Node::Data));
-
-        id = data.id;
-        position = Eigen::Vector3f(data.posX, data.posY, data.posZ);
-        scale = Eigen::Vector3f(data.sclX, data.sclY, data.sclZ);
-        rotation = Eigen::Vector3f(ushortToDegrees(data.rotX), ushortToDegrees(data.rotY), ushortToDegrees(data.rotZ));
-
-        // read mesh data
-        if (data.meshOffset != 0) {
-            stream.seekg(baseOffset + data.meshOffset, std::ios::beg);
-            meshdata = new MT5Mesh(stream, this);
-        }
-
-        // construct nodes
-        if (data.childNodeOffset != 0) {
-            stream.seekg(baseOffset + data.childNodeOffset, std::ios::beg);
-            child = new MT5Node(stream, baseOffset);
-        }
-
-        if (data.nextNodeOffset != 0) {
-            stream.seekg(baseOffset + data.nextNodeOffset, std::ios::beg);
-            nextSibling = new MT5Node(stream, baseOffset);
-        }
-    }
-
-    void write(std::ostream& stream) {
-
-    }
+    void read(std::istream& stream , int64_t baseOffset);
+    void write(std::ostream& stream);
 
     MT5Node::Data data;
-    mt5::MT5Mesh* meshdata;
+    MT5Mesh* meshdata;
 
 };
 

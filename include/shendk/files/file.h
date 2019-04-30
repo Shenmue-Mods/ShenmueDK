@@ -8,66 +8,41 @@ namespace fs = std::filesystem;
 
 namespace shendk {
 
-	/**
-	* @brief Base class for all file classes
-	**/
-    struct File {
+/**
+* @brief Base class for all file classes
+**/
+struct File {
 
-        virtual ~File() {}
+    virtual ~File() {}
 
-        /**
-        * @brief Reads a file.
-        * @param filepath Path of the file.
-        **/
-        void read(const std::string& filepath) {
-            if (!fs::exists(filepath)) return;
-            std::ifstream fstream(filepath, std::ios::binary);
-            if (fstream.is_open()) {
-                read(fstream);
-                fstream.close();
-            } else {
-                throw new std::runtime_error("Couldn't open file: " + filepath + "\n");
-            }
-        }
+    /**
+    * @brief Reads a file.
+    * @param filepath Path of the file.
+    **/
+    void read(const std::string& filepath);
 
-        void read(std::istream& stream) {
-            baseOffset = stream.tellg();
-            _read(stream);
-        }
+    void read(std::istream& stream);
 
-        /**
-        * @brief Writes a file.
-        * @param filepath Path of the file.
-        **/
-        void write(const std::string& filepath) {
-            std::ofstream fstream(filepath, std::ios::binary);
-            if (fstream.is_open()) {
-                write(fstream);
-                fstream.close();
-            }
-            else {
-                throw new std::runtime_error("Couldn't open file: " + filepath + "\n");
-            }
-        }
+    /**
+    * @brief Writes a file.
+    * @param filepath Path of the file.
+    **/
+    void write(const std::string& filepath);
 
-        void write(std::ostream& stream) {
-            baseOffset = stream.tellp();
-            _write(stream);
-        }
+    void write(std::ostream& stream);
 
-		/**
-		* @brief Verifies a file's signature
-		* @param signature Signature to verify
-		**/
-		bool isValid(unsigned int signature) {
-			return _isValid(signature);
-		}
+    /**
+    * @brief Verifies a file's signature
+    * @param signature Signature to verify
+    **/
+    bool isValid(unsigned int signature);
 
-	protected:
-        virtual bool _isValid(unsigned int signature) = 0;
-        virtual void _read(std::istream& stream) = 0;
-        virtual void _write(std::ostream& stream) = 0;
+protected:
+    virtual void _read(std::istream& stream) = 0;
+    virtual void _write(std::ostream& stream) = 0;
+    virtual bool _isValid(uint32_t signature) = 0;
 
-        int64_t baseOffset;
-	};
+    int64_t baseOffset;
+};
+
 }

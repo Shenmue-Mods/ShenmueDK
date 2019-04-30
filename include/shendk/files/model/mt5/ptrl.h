@@ -6,19 +6,11 @@ namespace shendk {
 namespace mt5 {
 
 struct PTRL : Node {
-
-    PTRL() {}
-    PTRL(std::istream& stream) { read(stream); }
-
+    PTRL();
+    PTRL(std::istream& stream);
 protected:
-
-    void _read(std::istream& stream) {
-
-    }
-
-    void _write(std::ostream& stream) {
-
-    }
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
 };
 
 }

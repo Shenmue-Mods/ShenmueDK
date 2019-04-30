@@ -65,7 +65,7 @@ file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
 #INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/third_party/nvidia-texture-tools/src)
 
 # shendk library
-add_library(ShenmueDK ${SOURCES} ${HEADERS})
+add_library(ShenmueDK SHARED ${SOURCES} ${HEADERS})
 target_include_directories(ShenmueDK
     PUBLIC include
     PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}

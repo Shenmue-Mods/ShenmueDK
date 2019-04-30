@@ -4,12 +4,11 @@
 #include <vector>
 #include <memory>
 
-#include "eigen3/Eigen/Dense"
-#include "eigen3/Eigen/Geometry"
+#include "shendk/types/vector.h"
+#include "shendk/types/matrix.h"
 
 #include "shendk/files/file.h"
 #include "shendk/types/texture.h"
-#include "shendk/utils/math.h"
 
 namespace shendk {
 
@@ -81,72 +80,30 @@ struct MeshSurface {
     std::vector<uint16_t> colorIndices;
 };
 
-
 struct ModelNode {
 
-    std::vector<ModelNode*> getAllNodes(bool includeSibling = true, bool includeChildren = true) {
-        std::vector<ModelNode*> result;
-        result.push_back(this);
-        if (child != nullptr && includeChildren) {
-            std::vector<ModelNode*> childNodes = child->getAllNodes(includeSibling, includeChildren);
-            result.insert(result.end(), childNodes.begin(), childNodes.end());
-        }
-        if (nextSibling != nullptr && includeSibling) {
-            std::vector<ModelNode*> siblingNodes = nextSibling->getAllNodes(includeSibling, includeChildren);
-            result.insert(result.end(), siblingNodes.begin(), siblingNodes.end());
-        }
-        return result;
-    }
+    virtual ~ModelNode();
 
-    Eigen::Matrix4f getTransformMatrixSelf() {
-        // TODO: this just hurts my eyes (clean up this mess by reading up on eigen3)
-        Eigen::Vector3f xAxis(1.0f, 0.0f, 0.0f);
-        Eigen::Vector3f yAxis(0.0f, 1.0f, 0.0f);
-        Eigen::Vector3f zAxis(0.0f, 0.0f, 1.0f);
-        Eigen::Quaternionf quatX(Eigen::AngleAxisf(rotation.x(), xAxis));
-        Eigen::Quaternionf quatY(Eigen::AngleAxisf(rotation.y(), yAxis));
-        Eigen::Quaternionf quatZ(Eigen::AngleAxisf(rotation.z(), zAxis));
-        Eigen::Matrix4f rotMatX(quatX.toRotationMatrix());
-        Eigen::Matrix4f rotMatY(quatY.toRotationMatrix());
-        Eigen::Matrix4f rotMatZ(quatZ.toRotationMatrix());
-        Eigen::Matrix4f scaleMatrix(Eigen::Matrix4f::Identity());
-        scaleMatrix.row(0)[0] = scale.x();
-        scaleMatrix.row(1)[1] = scale.y();
-        scaleMatrix.row(2)[2] = scale.z();
-        Eigen::Matrix4f translationMatrix(Eigen::Matrix4f::Identity());
-        translationMatrix.row(3)[0] = position.x();
-        translationMatrix.row(3)[1] = position.y();
-        translationMatrix.row(3)[2] = position.z();
-        return scaleMatrix * rotMatX * rotMatY * rotMatZ * translationMatrix;
-    }
-
-    Eigen::Matrix4f getTransformMatrix() {
-        Eigen::Matrix4f matrix = Eigen::Matrix4f::Identity();
-        if (parent != nullptr)
-        {
-            matrix = parent->getTransformMatrix();
-        }
-        return getTransformMatrixSelf() * matrix;
-    }
-
-    virtual ~ModelNode() {}
+    std::vector<ModelNode*> getAllNodes(bool includeSibling = true, bool includeChildren = true);
+    Matrix4x4f getTransformMatrixSelf();
+    Matrix4x4f getTransformMatrix();
 
     uint32_t id;
 
-    Eigen::Vector3f position;
-    Eigen::Vector3f rotation;
-    Eigen::Vector3f scale;
-    Eigen::Vector3f center;
+    Vector3f position;
+    Vector3f rotation;
+    Vector3f scale;
+    Vector3f center;
     float radius;
 
-    ModelNode* child;
-    ModelNode* nextSibling;
-    ModelNode* parent;
+    ModelNode* child = nullptr;
+    ModelNode* nextSibling = nullptr;
+    ModelNode* parent = nullptr;
 
-    std::vector<Eigen::Vector3f> vertexPositions;
-    std::vector<Eigen::Vector3f> vertexNormals;
-    std::vector<Eigen::Vector2f> vertexUVs;
-    std::vector<Eigen::Vector4f> vertexColors;
+    std::vector<Vector3f> vertexPositions;
+    std::vector<Vector3f> vertexNormals;
+    std::vector<Vector2f> vertexUVs;
+    std::vector<Vector4f> vertexColors;
     std::vector<MeshSurface> surfaces;
 
 };
@@ -154,9 +111,6 @@ struct ModelNode {
 struct Model {
 
     // Model ID = {0x00;LayerID;TypeID;BoneID}
-
-
-
     ModelNode* rootNode;
     std::vector<std::shared_ptr<Texture>> textures;
 };

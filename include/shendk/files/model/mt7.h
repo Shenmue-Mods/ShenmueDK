@@ -1,8 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-
-#include "shendk/types/model.h"
 #include "shendk/files/model_file.h"
 
 namespace shendk {
@@ -33,33 +30,15 @@ struct MT7 : ModelFile {
         uint32_t parentNodeOffset;
     };
 
-	MT7() = default;
-
-	MT7(const std::string& filepath) {
-		read(filepath);
-	}
+    MT7();
+    MT7(const std::string& filepath);
 
 	MT7::Header header;
+
 protected:
-	virtual void _read(std::istream& stream) {
-		int64_t baseOffset = stream.tellg();
-
-		std::istream* _stream = &stream;
-
-		_stream->seekg(baseOffset, std::ios::beg);
-
-		// Read header..
-		_stream->read(reinterpret_cast<char*>(&header), sizeof(MT7::Header));
-	}
-
-	virtual void _write(std::ostream& stream) {
-		stream.write(reinterpret_cast<char*>(&header), sizeof(MT7::Header));
-	}
-
-	virtual bool _isValid(unsigned char signature)
-	{
-		
-	}
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
+    virtual bool _isValid(uint32_t signature);
 };
 
 }

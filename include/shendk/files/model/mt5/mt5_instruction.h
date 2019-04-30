@@ -9,6 +9,14 @@
 namespace shendk {
 namespace mt5 {
 
+struct State {
+    uint16_t textureIndex;
+    std::vector<uint8_t> attributes;
+    uint16_t unknown1;
+    uint16_t unknown2;
+    uint8_t unknown3[10];
+};
+
 enum class InstructionType : uint16_t
 {
     Zero_0000 = 0x0000,
@@ -40,61 +48,29 @@ enum class InstructionType : uint16_t
 
 struct Instruction {
 
-    Instruction(InstructionType t)
-        : type(t)
-    {}
+    Instruction(InstructionType t);
+    Instruction(std::istream& stream);
+    virtual ~Instruction();
 
-    Instruction(std::istream& stream) {
-        read(stream);
-    }
-
-    virtual ~Instruction() {}
-
-    void read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&type), sizeof(uint16_t));
-        _read(stream);
-    }
-
-    void write(std::ostream& stream) {
-        stream.write(reinterpret_cast<char*>(&type), sizeof(uint16_t));
-        _write(stream);
-    }
+    void read(std::istream& stream);
+    void write(std::ostream& stream);
 
 protected:
-
-    virtual void _read(std::istream&) {}
-    virtual void _write(std::ostream&) {}
-
+    virtual void _read(std::istream&);
+    virtual void _write(std::ostream&);
     InstructionType type;
 };
 
-
-
 struct InAttributes : Instruction {
 
-    InAttributes(std::istream& stream)
-        : Instruction(stream)
-    {}
+    InAttributes(std::istream& stream);
+    virtual ~InAttributes();
 
-    virtual ~InAttributes()
-    {
-        delete[] data;
-    }
+    bool isHiResUV();
 
-    virtual void _read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&size), sizeof(uint16_t));
-        data = new uint8_t[size];
-        stream.read(reinterpret_cast<char*>(data), size);
-    }
-
-    virtual void _write(std::ostream& stream) {
-        stream.write(reinterpret_cast<char*>(&size), sizeof(uint16_t));
-        stream.write(reinterpret_cast<char*>(data), size);
-    }
-
-    bool isHiResUV() {
-        return (*data & 1) == 0;
-    }
+protected:
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
 
     uint16_t size;
     uint8_t* data; // contains information about uv
@@ -102,59 +78,38 @@ struct InAttributes : Instruction {
 
 struct InUnknown1 : Instruction {
 
-    InUnknown1(std::istream& stream)
-        : Instruction(stream)
-    {}
-
-    virtual ~InUnknown1() {}
-
-    virtual void _read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&value), sizeof(uint16_t));
-    }
-
-    virtual void _write(std::ostream& stream) {
-        stream.write(reinterpret_cast<char*>(&value), sizeof(uint16_t));
-    }
+    InUnknown1(std::istream& stream);
+    virtual ~InUnknown1();
 
     uint16_t value;
+
+protected:
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
 };
 
 struct InTexture : Instruction {
 
-    InTexture(std::istream& stream)
-        : Instruction(stream)
-    {}
-
-    virtual ~InTexture() {}
-
-    virtual void _read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&textureIndex), sizeof(uint16_t));
-    }
-
-    virtual void _write(std::ostream& stream) {
-        stream.write(reinterpret_cast<char*>(&textureIndex), sizeof(uint16_t));
-    }
+    InTexture(std::istream& stream);
+    virtual ~InTexture();
 
     uint16_t textureIndex;
+
+protected:
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
 };
 
 struct InUnknown2 : Instruction {
 
-    InUnknown2(std::istream& stream)
-        : Instruction(stream)
-    {}
-
-    virtual ~InUnknown2() {}
-
-    virtual void _read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&value), sizeof(uint16_t));
-    }
-
-    virtual void _write(std::ostream& stream) {
-        stream.write(reinterpret_cast<char*>(&value), sizeof(uint16_t));
-    }
+    InUnknown2(std::istream& stream);
+    virtual ~InUnknown2();
 
     uint16_t value;
+
+protected:
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
 };
 
 struct InUnknown3 : Instruction {
@@ -163,76 +118,37 @@ struct InUnknown3 : Instruction {
         uint8_t unknown[10];
     };
 
-    InUnknown3(std::istream& stream)
-        : Instruction(stream)
-    {}
-
-    virtual ~InUnknown3() {}
-
-    virtual void _read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&data), sizeof(InUnknown3::Data));
-    }
-
-    virtual void _write(std::ostream& stream) {
-        stream.write(reinterpret_cast<char*>(&data), sizeof(InUnknown3::Data));
-    }
+    InUnknown3(std::istream& stream);
+    virtual ~InUnknown3();
 
     InUnknown3::Data data;
+
+protected:
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
 };
 
 struct InStrip : Instruction {
 
-    InStrip(std::istream& stream)
-        : Instruction(stream)
-    {}
-
-    virtual ~InStrip() {}
-
-    virtual void _read(std::istream& stream) {
-        stream.read(reinterpret_cast<char*>(&unknown), sizeof(uint16_t));
-        stream.read(reinterpret_cast<char*>(&stripCount), sizeof(uint16_t));
-        if (stripCount == 0) return;
-
-        bool uv = hasUV();
-        bool color = hasColor();
-        for (int i = 0; i < stripCount; i++) {
-            MeshSurface face;
-            face.material.textureIndex = 0;
-        }
-    }
-
-    virtual void _write(std::ostream& stream) {
-        throw new std::runtime_error("Not implemented");
-        stream.write(reinterpret_cast<char*>(&unknown), sizeof(uint16_t));
-    }
+    InStrip(std::istream& stream, State& state);
+    virtual ~InStrip();
 
     uint16_t unknown;
     uint16_t stripCount;
     std::vector<MeshSurface> surfaces;
 
+protected:
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
+
 private:
-    bool hasUV() {
-        return type == InstructionType::Strip_1100 ||
-               type == InstructionType::Strip_1900 ||
-               type == InstructionType::Strip_1400 ||
-               type == InstructionType::Strip_1C00;
-    }
+    bool hasUV();
+    bool hasColor();
 
-    bool hasColor() {
-        return type == InstructionType::Strip_1200 ||
-               type == InstructionType::Strip_1A00 ||
-               type == InstructionType::Strip_1400 ||
-               type == InstructionType::Strip_1C00;
-    }
+    State& m_state;
 };
 
-struct State {
-    InTexture texture;
-    InAttributes attributes;
-    InUnknown1 unknown1;
-    InUnknown2 unknown2;
-    InUnknown3 unknown3;
-};
+
 
 
 }

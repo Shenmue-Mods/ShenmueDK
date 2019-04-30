@@ -11,36 +11,18 @@ struct SPR : ContainerFile {
 
     typedef TEXN Entry;
 
-    SPR() = default;
-    SPR(std::istream& stream) { read(stream); }
-    SPR(const std::string& filepath) { read(filepath); }
+    SPR();
+    SPR(std::istream& stream);
+    SPR(const std::string& filepath);
+
+    virtual void unpack(const std::string& folder);
 
     std::vector<TEXN> entries;
 
-    void unpack(const std::string& folder) {
-        // TODO: implement
-    }
-
 protected:
-
-    virtual void _read(std::istream& stream) {
-        while(!stream.eof()) {
-            TEXN entry;
-            entry.read(stream);
-            entries.push_back(entry);
-        }
-    }
-
-    virtual void _write(std::ostream& stream) {
-        for (auto& texn : entries) {
-            texn.write(stream);
-        }
-    }
-
-    virtual bool _isValid(unsigned int signature)
-    {
-        return false;
-    }
+    virtual void _read(std::istream& stream);
+    virtual void _write(std::ostream& stream);
+    virtual bool _isValid(uint32_t signature);
 };
 
 }
