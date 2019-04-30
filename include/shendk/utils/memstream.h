@@ -147,7 +147,7 @@ public:
         return 0;
     }
 
-    ptrdiff_t showmanyc() {
+    std::streamsize showmanyc() {
         return in_end() - in_cur();
     }
 
@@ -205,7 +205,7 @@ struct omstream
         : std::ostream(stream) {
     }
 
-    char* getBuffer(uint64_t& bufferSize) {
+    char* getBuffer(size_t& bufferSize) {
         mstreambuf* buf = dynamic_cast<mstreambuf*>(rdbuf());
         return buf->getBuffer(bufferSize);
     }
@@ -232,7 +232,7 @@ struct imstream
         : std::istream(stream) {
     }
 
-    char* getBuffer(uint64_t& bufferSize) {
+    char* getBuffer(size_t& bufferSize) {
         mstreambuf* buf = dynamic_cast<mstreambuf*>(rdbuf());
         return buf->getBuffer(bufferSize);
     }

@@ -55,7 +55,7 @@ link_directories(${CMAKE_INSTALL_LIBDIR})
 
 # eigen3
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen3/cmake")
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED NO_MODULE)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 # zlib
@@ -81,6 +81,7 @@ target_include_directories(${SHENDK_STATIC_LIB_NAME}
     PUBLIC include
     PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
 )
+target_link_libraries (${SHENDK_LIB_NAME} Eigen3::Eigen)
 
 target_link_libraries(${SHENDK_LIB_NAME} jsoncpp_lib)
 target_link_libraries(${SHENDK_LIB_NAME} zlibstatic)
