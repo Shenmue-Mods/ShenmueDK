@@ -1,0 +1,9 @@
+[submodule "extern/jsoncpp"]
+	path = extern/jsoncpp
+	url = https://github.com/open-source-parsers/jsoncpp.git
+[submodule "extern/zlib"]
+	path = extern/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "extern/eigen3"]
+	path = extern/eigen3
+	url = https://github.com/eigenteam/eigen-git-mirror.git
