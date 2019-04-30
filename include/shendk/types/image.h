@@ -77,6 +77,7 @@ struct Image {
         Image* resizedImage = new Image(width, height);
 
         // TODO: implement
+		return resizedImage;
     }
 
 protected:

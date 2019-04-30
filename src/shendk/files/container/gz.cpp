@@ -129,7 +129,7 @@ void GZ::_write(std::ostream& stream) {
 }
 
 bool GZ::_isValid(uint32_t signature) {
-
+	return false;
 }
 
 }

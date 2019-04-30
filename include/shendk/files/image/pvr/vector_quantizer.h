@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <limits>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 #include "shendk/utils/math.h"
 #include "shendk/types/image.h"

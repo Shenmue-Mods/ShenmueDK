@@ -3,9 +3,11 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 
 project (ShenmueDK LANGUAGES CXX DESCRIPTION "Shenmue I & II HD Modding SDK for C++")
 
-set (SHENDK_VERSION_MAJOR 0)
-set (SHENDK_VERSION_MINOR 1)
-set (SHENDK_VERSION_BUILD 0)
+set(SHENDK_LIB_NAME ShenmueDK)
+set(SHENDK_STATIC_LIB_NAME ShenmueDKStatic)
+set(SHENDK_VERSION_MAJOR 0)
+set(SHENDK_VERSION_MINOR 1)
+set(SHENDK_VERSION_BUILD 0)
 
 # c++ stuff
 set(CMAKE_CXX_STANDARD 17)
@@ -26,6 +28,9 @@ endif()
 option(BUILD_TESTS "Build test programs" ON)
 
 # dependencies
+if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
+    find_library(CXX_FILESYSTEM_SUPPORT NAMES stdc++fs)
+endif()
 
 #set(NV_SOURCE_DIR "third_party/nvidia-texture-tools")
 #IF(WIN32)
@@ -42,20 +47,21 @@ option(BUILD_TESTS "Build test programs" ON)
 #
 #ENDIF(WIN32)
 
-# zlib
-find_package(zlib REQUIRED)
-if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
-    find_library(CXX_FILESYSTEM_SUPPORT NAMES stdc++fs)
-endif()
 # jsoncpp
-find_package(jsoncpp REQUIRED)
-# eigen3
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen3)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/jsoncpp/src/lib_json)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/jsoncpp/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/extern/jsoncpp/include)
+link_directories(${CMAKE_INSTALL_LIBDIR})
 
-#set(JSONCPP_WITH_TESTS OFF CACHE BOOL "Compile and (for jsoncpp_check) run JsonCpp test executables" FORCE)
-#add_subdirectory(third_party/jsoncpp)
-#add_subdirectory(third_party/eigen3)
-#include(cmake/NvidiaInclude.cmake)
+# eigen3
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen3/cmake")
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
+# zlib
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/extern/zlib)
 
 # sources and stuff
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -65,28 +71,38 @@ file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
 #INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/third_party/nvidia-texture-tools/src)
 
 # shendk library
-add_library(ShenmueDK SHARED ${SOURCES} ${HEADERS})
-target_include_directories(ShenmueDK
+add_library(${SHENDK_LIB_NAME} SHARED ${SOURCES} ${HEADERS})
+add_library(${SHENDK_STATIC_LIB_NAME} STATIC ${SOURCES} ${HEADERS})
+target_include_directories(${SHENDK_LIB_NAME}
+    PUBLIC include
+    PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
+)
+target_include_directories(${SHENDK_STATIC_LIB_NAME}
     PUBLIC include
     PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(${PROJECT_NAME} jsoncpp)
-target_link_libraries(${PROJECT_NAME} stdc++fs)
-target_link_libraries(${PROJECT_NAME} z)
-#target_link_libraries(${PROJECT_NAME) nvcore)
-#target_link_libraries(${PROJECT_NAME) nvimage)
+target_link_libraries(${SHENDK_LIB_NAME} jsoncpp_lib)
+target_link_libraries(${SHENDK_LIB_NAME} zlibstatic)
+target_link_libraries(${SHENDK_STATIC_LIB_NAME} jsoncpp_lib)
+target_link_libraries(${SHENDK_STATIC_LIB_NAME} zlibstatic)
+#target_link_libraries(${SHENDK_LIB_NAME} nvcore)
+#target_link_libraries(${SHENDK_LIB_NAME} nvimage)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	target_link_libraries(${SHENDK_LIB_NAME} stdc++fs)
+	target_link_libraries(${SHENDK_STATIC_LIB_NAME} stdc++fs)
+endif()
 
 # unit tests (gtest)
 if (BUILD_TESTS)
-  #add_subdirectory(third_party/googletest)
-  find_package(GTest)
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest)
   include_directories(${GTEST_INCLUDE_DIRS})
   file(GLOB_RECURSE TEST_SOURCES tests/UTest/*.cpp tests/UTest/*.h)
   add_executable(shendk_test ${TEST_SOURCES})
-  target_link_libraries(shendk_test PRIVATE ${PROJECT_NAME})
+  target_link_libraries(shendk_test PRIVATE ${SHENDK_STATIC_LIB_NAME})
   target_link_libraries(shendk_test PRIVATE ${CXX_FILESYSTEM_SUPPORT})
   target_link_libraries(shendk_test PRIVATE gtest)
   target_link_libraries(shendk_test PRIVATE gmock)
-  target_include_directories(shendk_test PRIVATE include PRIVATE src)
+  target_include_directories(shendk_test PRIVATE include)
 endif()

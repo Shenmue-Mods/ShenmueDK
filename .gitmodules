@@ -7,3 +7,6 @@
 [submodule "extern/eigen3"]
 	path = extern/eigen3
 	url = https://github.com/eigenteam/eigen-git-mirror.git
+[submodule "extern/googletest"]
+	path = extern/googletest
+	url = https://github.com/google/googletest.git

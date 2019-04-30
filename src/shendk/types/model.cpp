@@ -1,6 +1,6 @@
 #include "shendk/types/model.h"
 
-#include "eigen3/Eigen/Dense"
+#include "Eigen/Dense"
 #include "shendk/utils/math.h"
 
 namespace shendk {

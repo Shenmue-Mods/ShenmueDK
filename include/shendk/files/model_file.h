@@ -4,8 +4,8 @@
 #include <vector>
 #include <memory>
 
-#include "eigen3/Eigen/Dense"
-#include "eigen3/Eigen/Geometry"
+#include "Eigen/Dense"
+#include "Eigen/Geometry"
 
 #include "shendk/files/file.h"
 #include "shendk/types/model.h"
