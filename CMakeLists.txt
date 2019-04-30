@@ -48,10 +48,9 @@ endif()
 #ENDIF(WIN32)
 
 # jsoncpp
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/jsoncpp/src/lib_json)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/jsoncpp)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/jsoncpp/include)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/extern/jsoncpp/include)
-link_directories(${CMAKE_INSTALL_LIBDIR})
 
 # eigen3
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/extern/eigen3/cmake")
@@ -83,10 +82,12 @@ target_include_directories(${SHENDK_STATIC_LIB_NAME}
 )
 target_link_libraries (${SHENDK_LIB_NAME} Eigen3::Eigen)
 
+target_link_libraries (${SHENDK_LIB_NAME} Eigen3::Eigen)
 target_link_libraries(${SHENDK_LIB_NAME} jsoncpp_lib)
 target_link_libraries(${SHENDK_LIB_NAME} zlibstatic)
 target_link_libraries(${SHENDK_STATIC_LIB_NAME} jsoncpp_lib)
 target_link_libraries(${SHENDK_STATIC_LIB_NAME} zlibstatic)
+target_link_libraries (${SHENDK_STATIC_LIB_NAME} Eigen3::Eigen)
 #target_link_libraries(${SHENDK_LIB_NAME} nvcore)
 #target_link_libraries(${SHENDK_LIB_NAME} nvimage)
 
