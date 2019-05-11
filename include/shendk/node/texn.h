@@ -11,7 +11,7 @@ namespace shendk {
 struct TEXN : public Node {
     TEXN();
     TEXN(std::istream& stream);
-    virtual ~TEXN();
+    ~TEXN();
 
     TextureID textureID;
     PVR pvrt;

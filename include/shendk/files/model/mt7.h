@@ -4,7 +4,7 @@
 
 namespace shendk {
 
-struct MT7 : ModelFile {
+struct MT7 : public ModelFile {
 
     struct Header {
         uint32_t signature;

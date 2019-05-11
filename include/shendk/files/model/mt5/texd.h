@@ -7,7 +7,7 @@
 namespace shendk {
 namespace mt5 {
 
-struct TEXD : Node {
+struct TEXD : public Node {
     TEXD();
     TEXD(std::istream& stream);
     uint32_t textureCount;

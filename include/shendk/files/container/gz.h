@@ -4,7 +4,7 @@
 
 namespace shendk {
 
-struct GZ : File {
+struct GZ : public File {
 
     GZ();
     GZ(const std::string& filepath);

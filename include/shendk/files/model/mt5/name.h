@@ -8,7 +8,7 @@
 namespace shendk {
 namespace mt5 {
 
-struct NAME : Node {
+struct NAME : public Node {
     NAME();
     NAME(std::istream& stream);
     std::vector<TextureID> textureIDs;

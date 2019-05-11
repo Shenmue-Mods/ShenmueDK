@@ -4,7 +4,7 @@
 
 namespace shendk {
 
-struct MAPINFO : File {
+struct MAPINFO : public File {
 
     MAPINFO();
     MAPINFO(const std::string& filepath);

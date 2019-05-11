@@ -6,7 +6,7 @@
 
 namespace shendk {
 
-struct CHRT : File {
+struct CHRT : public File {
 
     CHRT();
     CHRT(const std::string& filepath);

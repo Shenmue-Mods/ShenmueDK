@@ -7,7 +7,7 @@ namespace mt5 {
 
 struct MT5Mesh;
 
-struct MT5Node : ModelNode {
+struct MT5Node : public ModelNode {
 
     struct Data {
         uint32_t id;
@@ -36,8 +36,6 @@ struct MT5Node : ModelNode {
     void write(std::ostream& stream);
 
     MT5Node::Data data;
-    MT5Mesh* meshdata;
-
 };
 
 }

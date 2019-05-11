@@ -4,7 +4,7 @@
 
 namespace shendk {
 
-struct PNG : ImageFile {
+struct PNG : public ImageFile {
 
     PNG();
     PNG(const std::string& filepath);

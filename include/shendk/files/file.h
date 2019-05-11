@@ -37,6 +37,8 @@ struct File {
     **/
     bool isValid(unsigned int signature);
 
+    std::string filepath;
+
 protected:
     virtual void _read(std::istream& stream) = 0;
     virtual void _write(std::ostream& stream) = 0;

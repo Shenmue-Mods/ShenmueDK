@@ -4,7 +4,7 @@
 
 namespace shendk {
 
-struct DDS : ImageFile {
+struct DDS : public ImageFile {
 
     DDS();
     DDS(const std::string& filepath);

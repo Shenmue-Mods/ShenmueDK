@@ -9,7 +9,7 @@
 
 namespace shendk {
 
-struct PKF : File {
+struct PKF : public File {
 
     const static uint32_t signature = 1179337040;
 

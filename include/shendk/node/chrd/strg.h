@@ -8,7 +8,7 @@
 namespace shendk {
 namespace chrd {
 
-struct STRG : Node {
+struct STRG : public Node {
 
     virtual ~STRG();
 

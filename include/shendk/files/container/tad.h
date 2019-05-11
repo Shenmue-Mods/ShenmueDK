@@ -6,7 +6,7 @@
 
 namespace shendk {
 
-struct TAD : File {
+struct TAD : public File {
 
     struct Entry {
         uint32_t hash1;

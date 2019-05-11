@@ -112,8 +112,7 @@ void PVR::_read(std::istream& stream) {
         // decode mipmaps
         mipmaps.clear();
         if (dataCodec->hasMipmaps()) {
-            for (int i = 0, size = header.width; i < mipmapOffsets.size(); i++, size >>= 1)
-            {
+            for (int i = 0, size = header.width; i < mipmapOffsets.size(); i++, size >>= 1) {
                 stream.seekg(baseOffset + dataOffset + mipmapOffsets[i], std::ios::beg);
                 uint8_t* pixels = dataCodec->decode(stream, size, size, pixelCodec);
                 std::shared_ptr<Image> mipmap(new Image(size, size));

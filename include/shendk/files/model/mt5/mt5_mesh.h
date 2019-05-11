@@ -6,7 +6,7 @@
 namespace shendk {
 namespace mt5 {
 
-struct MT5Mesh {
+struct MT5Mesh : public NodeMesh {
 
     struct Header {
         uint32_t polyType;
@@ -26,9 +26,10 @@ struct MT5Mesh {
     void write(std::ostream& stream);
 
     MT5Mesh::Header header;
-    std::vector<Instruction> instructions;
+    std::vector<std::shared_ptr<Instruction>> instructions;
     MT5Node* node = nullptr;
     MT5Node* parentNode = nullptr;
+    State state;
 };
 
 }

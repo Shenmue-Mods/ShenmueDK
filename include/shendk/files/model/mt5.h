@@ -9,7 +9,7 @@
 
 namespace shendk {
 
-struct MT5 : ModelFile {
+struct MT5 : public ModelFile {
     const static uint32_t signature = 1296257608;
 
     struct Header {
@@ -20,6 +20,7 @@ struct MT5 : ModelFile {
 
     MT5();
     MT5(const std::string& filepath);
+    ~MT5();
 
 	MT5::Header header;
 

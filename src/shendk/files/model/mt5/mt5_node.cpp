@@ -3,6 +3,8 @@
 #include "shendk/files/model/mt5/mt5_mesh.h"
 #include "shendk/utils/math.h"
 
+#include <iostream>
+
 namespace shendk {
 namespace mt5 {
 
@@ -28,7 +30,7 @@ void MT5Node::read(std::istream& stream , int64_t baseOffset) {
     // read mesh data
     if (data.meshOffset != 0) {
         stream.seekg(baseOffset + data.meshOffset, std::ios::beg);
-        meshdata = new MT5Mesh(stream, this);
+        mesh = new MT5Mesh(stream, this);
     }
 
     // construct nodes
@@ -39,7 +41,7 @@ void MT5Node::read(std::istream& stream , int64_t baseOffset) {
 
     if (data.nextNodeOffset != 0) {
         stream.seekg(baseOffset + data.nextNodeOffset, std::ios::beg);
-        nextSibling = new MT5Node(stream, baseOffset, this);
+        nextSibling = new MT5Node(stream, baseOffset, dynamic_cast<MT5Node*>(parent));
     }
 }
 

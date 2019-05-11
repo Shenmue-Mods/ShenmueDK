@@ -5,7 +5,7 @@
 
 namespace shendk {
 
-struct PKS : File {
+struct PKS : public File {
     const static uint32_t signature = 1397440848;
 
     struct Header {

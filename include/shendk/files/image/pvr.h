@@ -5,7 +5,7 @@
 
 namespace shendk {
 
-struct PVR : ImageFile {
+struct PVR : public ImageFile {
 
     const static uint32_t gbix = 0x58494247;
     const static uint32_t pvrt = 0x54525650;

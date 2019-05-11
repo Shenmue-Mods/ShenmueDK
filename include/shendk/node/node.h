@@ -14,6 +14,7 @@ struct Node {
         uint32_t size;
     };
 
+    Node();
     virtual ~Node();
 
     void read(std::istream& stream);

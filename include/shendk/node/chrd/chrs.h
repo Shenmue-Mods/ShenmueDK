@@ -9,7 +9,7 @@
 namespace shendk {
 namespace chrd {
 
-struct CHRS : Node {
+struct CHRS : public Node {
 
     std::set<std::string> Tokens1 {
         "Flags",

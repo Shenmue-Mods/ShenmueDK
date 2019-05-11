@@ -9,7 +9,7 @@
 
 namespace shendk {
 
-struct CHRD : Node {
+struct CHRD : public Node {
     virtual ~CHRD();
     chrd::STRG strg;
     chrd::CHRS chrs;

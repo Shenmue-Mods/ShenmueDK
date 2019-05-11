@@ -7,7 +7,7 @@
 
 namespace shendk {
 
-struct SPR : ContainerFile {
+struct SPR : public ContainerFile {
 
     typedef TEXN Entry;
 

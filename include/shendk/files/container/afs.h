@@ -8,7 +8,7 @@
 
 namespace shendk {
 
-struct AFS : ContainerFile {
+struct AFS : public ContainerFile {
     const static uint32_t signature = 5457473;
 
     struct Header {

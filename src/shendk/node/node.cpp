@@ -4,6 +4,7 @@
 
 namespace shendk {
 
+Node::Node() {}
 Node::~Node() {}
 
 void Node::read(std::istream& stream) {

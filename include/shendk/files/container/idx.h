@@ -6,7 +6,7 @@
 
 namespace shendk {
 
-struct IDX : File {
+struct IDX : public File {
 
     enum class Type {
         IDX0,

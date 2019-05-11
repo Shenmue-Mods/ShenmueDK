@@ -5,7 +5,7 @@
 namespace shendk {
 namespace mt5 {
 
-struct PTRL : Node {
+struct PTRL : public Node {
     PTRL();
     PTRL(std::istream& stream);
 protected:

@@ -7,7 +7,7 @@
 namespace shendk {
 namespace mt5 {
 
-struct TEXL : Node {
+struct TEXL : public Node {
 
     struct Header {
         uint32_t unknown;

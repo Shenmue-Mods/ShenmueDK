@@ -7,6 +7,7 @@ namespace shendk {
 
 MT5::MT5() = default;
 MT5::MT5(const std::string& filepath) { read(filepath); }
+MT5::~MT5() {}
 
 void MT5::_read(std::istream& stream) {
 
@@ -14,15 +15,19 @@ void MT5::_read(std::istream& stream) {
     stream.read(reinterpret_cast<char*>(&header), sizeof(MT5::Header));
     if (!isValid(header.signature)) throw new std::runtime_error("Invalid signature for MT5 file!\n");
 
-    // read nodes
+    // read nodes recursively
     stream.seekg(baseOffset + header.firstNodeOffset, std::ios::beg);
-    model->rootNode = new mt5::MT5Node(stream, baseOffset);
+    model.rootNode = std::shared_ptr<ModelNode>(new mt5::MT5Node(stream, baseOffset));
+
+    // get end of file
+    stream.seekg(0, std::ios::end);
+    int64_t endOfFile = stream.tellg();
 
     // read appended nodes (textures and other stuff)
     int64_t nodeOffset;
     Node::Header nodeHeader;
     stream.seekg(baseOffset + header.nodesSize, std::ios::beg);
-    while(!stream.eof()) {
+    while(stream.tellg() < endOfFile - sizeof(Node::Header)) {
         nodeOffset = stream.tellg();
         stream.read(reinterpret_cast<char*>(&nodeHeader), sizeof(Node::Header));
         if (nodeHeader.signature == 0x44584554) { //TEXD
@@ -54,8 +59,7 @@ void MT5::_read(std::istream& stream) {
             }
         } else if (nodeHeader.signature == 0x4E584554) { // TEXN
             stream.seekg(nodeOffset, std::ios::beg);
-            TEXN texn;
-            texn.read(stream);
+            TEXN texn(stream);
             texnEntries.push_back(texn);
         }
         stream.seekg(nodeOffset + nodeHeader.size, std::ios::beg);
@@ -67,6 +71,22 @@ void MT5::_read(std::istream& stream) {
         if (name) { textureCount += name->textureIDs.size(); }
         if (texd->textureCount != textureCount) {
             throw new std::runtime_error("Found textures don't match the given texture count!");
+        }
+    }
+
+    // add textures to model
+    for (auto& texture : texnEntries) {
+        Texture tex;
+        tex.textureID = texture.textureID;
+        std::cout << tex.textureID.hexStr() << std::endl;
+        tex.image = texture.pvrt.getImage();
+        model.textures.push_back(tex);
+    }
+    if (name) {
+        for (auto& textureID : name->textureIDs) {
+            Texture tex;
+            tex.textureID = textureID;
+            model.textures.push_back(tex);
         }
     }
 }

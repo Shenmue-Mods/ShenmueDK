@@ -7,7 +7,7 @@
 
 namespace shendk {
 
-struct IPAC : File {
+struct IPAC : public File {
     const static uint32_t signature = 1128353865;
 
     struct Header {

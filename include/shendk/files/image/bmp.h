@@ -4,7 +4,7 @@
 
 namespace shendk {
 
-struct BMP : ImageFile {
+struct BMP : public ImageFile {
 
     BMP();
     BMP(const std::string& filepath);

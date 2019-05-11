@@ -8,6 +8,7 @@ namespace shendk {
 **/
 void File::read(const std::string& filepath) {
     if (!fs::exists(filepath)) return;
+    this->filepath = filepath;
     std::ifstream fstream(filepath, std::ios::binary);
     if (fstream.is_open()) {
         read(fstream);
@@ -27,6 +28,7 @@ void File::read(std::istream& stream) {
 * @param filepath Path of the file.
 **/
 void File::write(const std::string& filepath) {
+    this->filepath = filepath;
     std::ofstream fstream(filepath, std::ios::binary);
     if (fstream.is_open()) {
         write(fstream);
