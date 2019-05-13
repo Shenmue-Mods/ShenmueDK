@@ -1,10 +1,10 @@
 # Shenmue Developer Kit for C++
-Shenmue I & II HD Modding SDK for C++
+Shenmue I & II Modding SDK for C++
 
 This library is a port of the [ShenmueDKSharp](https://github.com/philyeahz/ShenmueDKSharp).
 
 How to contribute:
-- Feel free to create pull requests if you want to contribute some fixes or features.
+- Feel free to commit if you want to contribute some fixes or features.
 - If you found an bug just create an issue on GitHub.
 - For feature requests just create an issue on GitHub.
 
