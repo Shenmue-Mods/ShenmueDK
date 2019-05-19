@@ -17,7 +17,7 @@ void MT5::_read(std::istream& stream) {
 
     // read nodes recursively
     stream.seekg(baseOffset + header.firstNodeOffset, std::ios::beg);
-    model.rootNode = std::shared_ptr<ModelNode>(new mt5::MT5Node(stream, baseOffset));
+    model.rootNode = std::shared_ptr<ModelNode>(new mt5::MT5Node(&model, stream, baseOffset));
 
     // get end of file
     stream.seekg(0, std::ios::end);

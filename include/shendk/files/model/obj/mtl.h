@@ -8,10 +8,13 @@
 namespace shendk {
 namespace obj {
 
+/**
+ * @brief Wavefront OBJ material file
+ */
 struct MTL : public File {
     MTL();
     MTL(const std::string& filepath);
-
+    MTL(std::vector<Texture> textures);
     std::vector<Texture> textures;
     std::vector<std::string> materialNames;
 

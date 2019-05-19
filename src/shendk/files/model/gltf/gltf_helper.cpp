@@ -215,7 +215,7 @@ void WriteBinaryGltf(std::ostream& stream, tinygltf::Model *model) {
     }
 
     // write binary
-    std::string content = output.dump();
+    std::string content = output.dump(2);
     /*const std::string header = "glTF";
     const int version = 2;
     const int padding_size = content.size() % 4;

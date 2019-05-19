@@ -5,6 +5,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Dreamcast PVR texture file.
+ */
 struct PVR : public ImageFile {
 
     const static uint32_t gbix = 0x58494247;

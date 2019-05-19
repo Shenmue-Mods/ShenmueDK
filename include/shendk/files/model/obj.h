@@ -4,6 +4,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Wavefront OBJ model file
+ */
 struct OBJ : public ModelFile {
 
     OBJ();

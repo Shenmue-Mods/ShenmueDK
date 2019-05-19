@@ -6,6 +6,9 @@
 
 namespace shendk {
 
+/**
+ * @brief d3t indexing file for TAC container.
+ */
 struct TAD : public File {
 
     struct Entry {

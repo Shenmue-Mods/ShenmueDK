@@ -5,6 +5,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue IPAC wrapper file.
+ */
 struct PKS : public File {
     const static uint32_t signature = 1397440848;
 

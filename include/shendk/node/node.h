@@ -7,6 +7,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue base node structure.
+ */
 struct Node {
 
     struct Header {

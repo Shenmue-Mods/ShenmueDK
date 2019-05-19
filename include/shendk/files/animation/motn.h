@@ -8,6 +8,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue animation file.
+ */
 struct MOTN : public File {
 
     struct KeyFrame {

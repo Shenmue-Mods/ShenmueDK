@@ -8,11 +8,8 @@
 namespace shendk {
 
 PNG::PNG() = default;
-
-PNG::PNG(const std::string& filepath) {
-    read(filepath);
-}
-
+PNG::PNG(const std::string& filepath) { read(filepath); }
+PNG::PNG(std::shared_ptr<Image> image) { mipmaps.push_back(image); }
 PNG::~PNG() {}
 
 void PNG::_read(std::istream& stream) {

@@ -4,6 +4,9 @@
 
 namespace shendk {
 
+/**
+ * @brief GZip compressed file.
+ */
 struct GZ : public File {
 
     GZ();

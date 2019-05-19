@@ -148,4 +148,13 @@ struct Vector4f {
     static Vector4f one();
 };
 
+struct Vector4i16 {
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
+    uint16_t w;
+
+    Vector4i16(uint16_t value);
+};
+
 }

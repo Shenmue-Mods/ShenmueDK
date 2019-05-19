@@ -4,6 +4,9 @@
 
 namespace shendk {
 
+/**
+ * @brief SM2 model container file
+ */
 struct MT7 : public ModelFile {
 
     struct Header {

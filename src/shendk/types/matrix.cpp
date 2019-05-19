@@ -28,6 +28,15 @@ Matrix4f::Matrix4f(float m00, float m01, float m02, float m03,
     , row3(m30, m31, m32, m33)
 {}
 
+std::vector<uint8_t> Matrix4f::data() {
+    std::vector<uint8_t> data;
+    Matrix4f mat = *this;
+    for (int j = 0; j < sizeof(Matrix4f); j++) {
+        data.push_back(reinterpret_cast<uint8_t*>(&mat)[j]);
+    }
+    return data;
+}
+
 std::string Matrix4f::str() {
     std::stringstream ss;
     ss << "{" << row0.str() << ", " << row1.str() << ", " << row2.str() << ", " << row3.str() << "}";

@@ -339,4 +339,8 @@ Vector4f Vector4f::uintW() { return Vector4f(0.0f, 0.0f, 0.0f, 1.0f); }
 Vector4f Vector4f::zero() { return Vector4f(0.0f, 0.0f, 0.0f, 0.0f); }
 Vector4f Vector4f::one() { return Vector4f(1.0f, 1.0f, 1.0f, 1.0f); }
 
+Vector4i16::Vector4i16(uint16_t value)
+    : x(value), y(value), z(value), w(value)
+{}
+
 }

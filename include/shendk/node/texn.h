@@ -8,6 +8,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Texture entry node with texture ID and PVR texture.
+ */
 struct TEXN : public Node {
     TEXN();
     TEXN(std::istream& stream);

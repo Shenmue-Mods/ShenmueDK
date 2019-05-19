@@ -9,6 +9,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue texture container file made up of TEXN entries.
+ */
 struct PKF : public File {
 
     const static uint32_t signature = 1179337040;

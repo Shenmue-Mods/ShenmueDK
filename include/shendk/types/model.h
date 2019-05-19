@@ -120,19 +120,51 @@ struct Material {
     bool transparent;
 };
 
+
+/** @brief Vertex buffer containing each vertex attribute as own array of varying lengths.
+ *         This is due to the fact that a single vertex can have the same position and normal,
+ *         but not the same texture coordinates. */
+struct VertexBuffer {
+    std::vector<Vector3f> positions;
+    std::vector<Vector3f> normals;
+    std::vector<Vector2f> texcoords;
+    std::vector<Vector4f> colors;
+    std::vector<float> weights;
+    std::vector<BoneID> joints;
+
+    /** @brief transformed positions */
+    std::vector<Vector3f> t_positions;
+    /** @brief transformed normals */
+    std::vector<Vector3f> t_normals;
+
+    uint32_t vertexCount() { return static_cast<uint32_t>(positions.size()); }
+
+    // byte arrays getter (for glTF)
+    std::vector<uint8_t> getPositionData(Matrix4f matrix = Matrix4f::identity());
+    std::vector<uint8_t> getNormalData(Matrix4f matrix = Matrix4f::identity());
+    std::vector<uint8_t> getTexcoordData();
+    std::vector<uint8_t> getColorData();
+    std::vector<uint8_t> getWeightsData();
+    std::vector<uint8_t> getJointsData();
+};
+
 struct MeshSurface {
     PrimitiveType type;
     Material material;
-    std::vector<uint16_t> positionIndices;
-    std::vector<uint16_t> normalIndices;
-    std::vector<uint16_t> uvIndices;
-    std::vector<uint16_t> colorIndices;
+    std::vector<uint32_t> positionIndices;
+    std::vector<uint32_t> normalIndices;
+    std::vector<uint32_t> texcoordIndices;
+    std::vector<uint32_t> colorIndices;
+    std::vector<uint32_t> weightIndices;
+    std::vector<uint32_t> jointIndices;
 
     int indexCount() { return positionIndices.size(); }
     bool hasPosition() { return positionIndices.size() > 0; }
     bool hasNormal() { return normalIndices.size() > 0; }
-    bool hasUV() { return uvIndices.size() > 0; }
+    bool hasTexcoord() { return texcoordIndices.size() > 0; }
     bool hasColor() { return colorIndices.size() > 0; }
+    bool hasWeight() { return weightIndices.size() > 0; }
+    bool hasJoint() { return jointIndices.size() > 0; }
 
     int lengthBytes() { return stride() * indexCount(); }
 
@@ -144,7 +176,7 @@ struct MeshSurface {
         if (hasNormal()) {
             stride += sizeof(Vector3f);
         }
-        if (hasUV()) {
+        if (hasTexcoord()) {
             stride += sizeof(Vector2f);
         }
         /*if (hasColor()) {
@@ -153,251 +185,32 @@ struct MeshSurface {
         return stride;
     }
 
-    void mergeSurface(MeshSurface& rhs) {
-        if (type != PrimitiveType::Triangles) {
-            throw new std::runtime_error("Only triangle surfaces can be merged.");
-        }
-        if (hasPosition()) {
-            positionIndices.insert(positionIndices.end(), rhs.positionIndices.begin(), rhs.positionIndices.end());
-        }
-        if (hasNormal()) {
-            normalIndices.insert(normalIndices.end(), rhs.normalIndices.begin(), rhs.normalIndices.end());
-        }
-        if (hasUV()) {
-            uvIndices.insert(uvIndices.end(), rhs.uvIndices.begin(), rhs.uvIndices.end());
-        }
-        if (hasColor()) {
-            colorIndices.insert(colorIndices.end(), rhs.colorIndices.begin(), rhs.colorIndices.end());
-        }
-    }
-
-    void convertToTriangles() {
-        if (hasPosition()) {
-            std::vector<uint16_t> newIndices;
-            for (int i = 0; i < indexCount() - 2; i++) {
-                int index1 = positionIndices[i];
-                int index2 = positionIndices[i + 1];
-                int index3 = positionIndices[i + 2];
-                if ((i & 1) == 1) {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index2);
-                    newIndices.push_back(index3);
-                } else {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index3);
-                    newIndices.push_back(index2);
-                }
-            }
-            positionIndices = newIndices;
-        }
-        if (hasNormal()){
-            std::vector<uint16_t> newIndices;
-            for (int i = 0; i < indexCount() - 2; i++) {
-                int index1 = normalIndices[i];
-                int index2 = normalIndices[i + 1];
-                int index3 = normalIndices[i + 2];
-                if ((i & 1) == 1) {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index2);
-                    newIndices.push_back(index3);
-                } else {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index3);
-                    newIndices.push_back(index2);
-                }
-            }
-            normalIndices = newIndices;
-        }
-        if (hasUV()){
-            std::vector<uint16_t> newIndices;
-            for (int i = 0; i < indexCount() - 2; i++) {
-                int index1 = uvIndices[i];
-                int index2 = uvIndices[i + 1];
-                int index3 = uvIndices[i + 2];
-                if ((i & 1) == 1) {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index2);
-                    newIndices.push_back(index3);
-                } else {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index3);
-                    newIndices.push_back(index2);
-                }
-            }
-            uvIndices = newIndices;
-        }
-        if (hasColor()){
-            std::vector<uint16_t> newIndices;
-            for (int i = 0; i < indexCount() - 2; i++) {
-                int index1 = colorIndices[i];
-                int index2 = colorIndices[i + 1];
-                int index3 = colorIndices[i + 2];
-                if ((i & 1) == 1) {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index2);
-                    newIndices.push_back(index3);
-                } else {
-                    newIndices.push_back(index1);
-                    newIndices.push_back(index3);
-                    newIndices.push_back(index2);
-                }
-            }
-            colorIndices = newIndices;
-        }
-        type = PrimitiveType::Triangles;
-    }
+    void mergeSurface(MeshSurface& rhs);
+    void convertToTriangles();
 };
+
+
+struct ModelNode;
 
 struct NodeMesh {
-    uint32_t vertexCount;
 
-    std::vector<Vector3f> vertexPositions;
-    std::vector<Vector3f> vertexNormals;
+    NodeMesh(ModelNode* node);
 
-    std::vector<Vector2f> vertexUVs;
-    std::vector<Vector4f> vertexColors;
+    ModelNode* node;
+    uint32_t vertexCount = 0;
+    uint32_t vertexBufferOffset = 0;
+
     std::vector<MeshSurface> surfaces;
 
-    std::vector<uint8_t> getIndicesData() {
-        std::vector<uint8_t> data;
-        uint16_t index = 0;
-        for (auto& surface : surfaces) {
-            int vertCount = surface.positionIndices.size();
-            for (int i = 0; i < vertCount; i++) {
-                for (int j = 0; j < sizeof(uint16_t); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&index)[j]);
-                }
-                index++;
-            }
-            index = 0;
-        }
-        return data;
-    }
-
-    std::vector<uint8_t> createJointData(uint16_t jointID) {
-        std::vector<uint8_t> data;
-        for (auto& surface : surfaces) {
-            int vertCount = surface.positionIndices.size();
-            for (int i = 0; i < vertCount; i++) {
-                for (int c = 0; c < 4; c++) {
-                    for (int j = 0; j < sizeof(uint16_t); j++) {
-                        data.push_back(reinterpret_cast<uint8_t*>(&jointID)[j]);
-                    }
-                }
-            }
-        }
-        return data;
-    }
-
-    std::vector<uint8_t> createWeightData(Vector4f weight) {
-        std::vector<uint8_t> data;
-        for (auto& surface : surfaces) {
-            int vertCount = surface.positionIndices.size();
-            for (int i = 0; i < vertCount; i++) {
-                for (int j = 0; j < sizeof(Vector4f); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&weight)[j]);
-                }
-            }
-        }
-        return data;
-    }
-
-    std::vector<uint8_t> getPositionData(Matrix4f matrix = Matrix4f::identity()) {
-        std::vector<uint8_t> data;
-        for (auto& surface : surfaces) {
-            int vertCount = surface.positionIndices.size();
-            bool hasPosition = surface.hasPosition();
-            for (int i = 0; i < vertCount; i++) {
-                Vector3f pos;
-                if (hasPosition) {
-                    pos = vertexPositions[surface.positionIndices[i]];
-                    pos = pos.transformPosition(matrix);
-                }
-                for (int j = 0; j < sizeof(Vector3f); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&pos)[j]);
-                }
-            }
-        }
-        return data;
-    }
-
-    std::vector<uint8_t> getNormalData(Matrix4f matrix = Matrix4f::identity()) {
-        std::vector<uint8_t> data;
-        for (auto& surface : surfaces) {
-            int vertCount = surface.positionIndices.size();
-            bool hasNormal = surface.hasNormal();
-            for (int i = 0; i < vertCount; i++) {
-                Vector3f norm;
-                if (hasNormal) {
-                    norm = vertexNormals[surface.normalIndices[i]];
-                    norm = norm.transformPosition(matrix);
-                }
-                for (int j = 0; j < sizeof(Vector3f); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&norm)[j]);
-                }
-            }
-        }
-        return data;
-    }
-
-    std::vector<uint8_t> getUVData() {
-        std::vector<uint8_t> data;
-        for (auto& surface : surfaces) {
-            int vertCount = surface.positionIndices.size();
-            bool hasUV = surface.hasUV();
-            for (int i = 0; i < vertCount; i++) {
-                Vector2f uv;
-                if (hasUV) {
-                    uv = vertexUVs[surface.uvIndices[i]];
-                }
-                for (int j = 0; j < sizeof(Vector2f); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&uv)[j]);
-                }
-            }
-        }
-        return data;
-    }
-
-    std::vector<uint8_t> getData() {
-        std::vector<uint8_t> data;
-        for (auto& surface : surfaces) {
-            int vertCount = surface.positionIndices.size();
-            bool hasPosition = surface.hasPosition();
-            bool hasNormal = surface.hasNormal();
-            bool hasUV = surface.hasUV();
-            bool hasColor = surface.hasColor();
-            for (int i = 0; i < vertCount; i++) {
-                Vector3f pos;
-                Vector3f norm;
-                Vector2f uv;
-
-                if (hasPosition) {
-                    pos = vertexPositions[surface.positionIndices[i]];
-                }
-                if (hasNormal) {
-                    norm = vertexNormals[surface.normalIndices[i]];
-                }
-                if (hasUV) {
-                    uv = vertexUVs[surface.uvIndices[i]];
-                }
-
-                for (int j = 0; j < sizeof(Vector3f); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&pos)[j]);
-                }
-                for (int j = 0; j < sizeof(Vector3f); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&norm)[j]);
-                }
-                for (int j = 0; j < sizeof(Vector2f); j++) {
-                    data.push_back(reinterpret_cast<uint8_t*>(&uv)[j]);
-                }
-            }
-        }
-        return data;
-    }
+    VertexBuffer& vertexBuffer();
+    uint32_t getIndex(int32_t index);
 };
+
+struct Model;
 
 struct ModelNode : std::enable_shared_from_this<ModelNode> {
 
+    ModelNode(Model* model);
     virtual ~ModelNode();
 
     std::vector<ModelNode*> getAllNodes(bool includeSibling = true, bool includeChildren = true);
@@ -406,8 +219,9 @@ struct ModelNode : std::enable_shared_from_this<ModelNode> {
 
     BoneID getBoneID();
 
-    uint32_t id;
+    Model* model;
 
+    uint32_t id;
     Vector3f position;
     Vector3f rotation;
     Vector3f scale;
@@ -424,6 +238,7 @@ struct ModelNode : std::enable_shared_from_this<ModelNode> {
 struct Model {
     std::shared_ptr<ModelNode> rootNode;
     std::vector<Texture> textures;
+    VertexBuffer vertexBuffer;
 };
 
 struct Animation {

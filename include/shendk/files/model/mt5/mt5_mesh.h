@@ -19,17 +19,18 @@ struct MT5Mesh : public NodeMesh {
         float radius;
     };
 
-    MT5Mesh(std::istream& stream, MT5Node* owner);
+    MT5Mesh(MT5Node* node);
+    MT5Mesh(MT5Node* node, std::istream& stream);
     ~MT5Mesh();
 
-    void read(std::istream& stream, MT5Node* owner);
+    void read(std::istream& stream);
     void write(std::ostream& stream);
 
     MT5Mesh::Header header;
-    std::vector<std::shared_ptr<Instruction>> instructions;
-    MT5Node* node = nullptr;
     MT5Node* parentNode = nullptr;
+
     State state;
+    std::vector<std::shared_ptr<Instruction>> instructions;
 };
 
 }

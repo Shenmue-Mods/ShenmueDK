@@ -4,10 +4,14 @@
 
 namespace shendk {
 
+/**
+ * @brief Portable Network Graphics file.
+ */
 struct PNG : public ImageFile {
 
     PNG();
     PNG(const std::string& filepath);
+    PNG(std::shared_ptr<Image> image);
     ~PNG();
 
 protected:

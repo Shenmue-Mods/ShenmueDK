@@ -7,6 +7,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue file container with embedded indexing and metadata.
+ */
 struct IPAC : public File {
     const static uint32_t signature = 1128353865;
 

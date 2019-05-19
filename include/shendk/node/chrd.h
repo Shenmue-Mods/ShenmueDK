@@ -9,6 +9,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Character data node
+ */
 struct CHRD : public Node {
     virtual ~CHRD();
     chrd::STRG strg;

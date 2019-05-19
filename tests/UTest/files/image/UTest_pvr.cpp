@@ -23,8 +23,8 @@ namespace {
 
             std::cout << newImage->width() << "x" << newImage->height() << std::endl;
             for (auto& pixel : *newImage) {
-                shendk::BGRA pix = pixel;
-                outFile.write(reinterpret_cast<char*>(&pix), sizeof(shendk::BGRA));
+                shendk::RGBA pix = pixel;
+                outFile.write(reinterpret_cast<char*>(&pix), sizeof(shendk::RGBA));
             }
         }
         outFile.flush();

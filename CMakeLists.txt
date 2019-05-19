@@ -26,26 +26,13 @@ endif()
 
 # options
 option(BUILD_TESTS "Build test programs" ON)
+option(BUILD_STATIC "Build shendk static library" ON)
+option(BUILD_SHARED "Build shendk shared library" OFF)
 
 # dependencies
 if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
     find_library(CXX_FILESYSTEM_SUPPORT NAMES stdc++fs)
 endif()
-
-#set(NV_SOURCE_DIR "third_party/nvidia-texture-tools")
-#IF(WIN32)
-#	# gnuwin32 paths:
-#	SET(GNUWIN32_PATH "${NV_SOURCE_DIR}/extern/gnuwin32")
-#	SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${GNUWIN32_PATH}/include")
-#	SET(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${GNUWIN32_PATH}/lib")
-#
-#	# Set GLUT path:
-#	SET(GLUT_ROOT_DIR "${NV_SOURCE_DIR}/extern/glut")
-#
-#	# Set FreeImage path:
-#	SET(FREEIMAGE_ROOT_DIR "${NV_SOURCE_DIR}/extern/FreeImage")
-#
-#ENDIF(WIN32)
 
 # jsoncpp
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/jsoncpp)
@@ -67,44 +54,46 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
-#INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/third_party/nvidia-texture-tools/src)
 
-# shendk library
-add_library(${SHENDK_LIB_NAME} SHARED ${SOURCES} ${HEADERS})
-add_library(${SHENDK_STATIC_LIB_NAME} STATIC ${SOURCES} ${HEADERS})
-target_include_directories(${SHENDK_LIB_NAME}
-    PUBLIC include
-    PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
-)
-target_include_directories(${SHENDK_STATIC_LIB_NAME}
-    PUBLIC include
-    PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
-)
-target_link_libraries (${SHENDK_LIB_NAME} Eigen3::Eigen)
+# shendk shared library
+if (BUILD_SHARED)
+    add_library(${SHENDK_LIB_NAME} SHARED ${SOURCES} ${HEADERS})
+    target_include_directories(${SHENDK_LIB_NAME}
+        PUBLIC include
+        PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    target_link_libraries (${SHENDK_LIB_NAME} Eigen3::Eigen)
+    target_link_libraries(${SHENDK_LIB_NAME} jsoncpp_lib)
+    target_link_libraries(${SHENDK_LIB_NAME} zlibstatic)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_link_libraries(${SHENDK_LIB_NAME} stdc++fs)
+    endif()
+endif()
 
-target_link_libraries (${SHENDK_LIB_NAME} Eigen3::Eigen)
-target_link_libraries(${SHENDK_LIB_NAME} jsoncpp_lib)
-target_link_libraries(${SHENDK_LIB_NAME} zlibstatic)
-target_link_libraries(${SHENDK_STATIC_LIB_NAME} jsoncpp_lib)
-target_link_libraries(${SHENDK_STATIC_LIB_NAME} zlibstatic)
-target_link_libraries (${SHENDK_STATIC_LIB_NAME} Eigen3::Eigen)
-#target_link_libraries(${SHENDK_LIB_NAME} nvcore)
-#target_link_libraries(${SHENDK_LIB_NAME} nvimage)
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-	target_link_libraries(${SHENDK_LIB_NAME} stdc++fs)
-	target_link_libraries(${SHENDK_STATIC_LIB_NAME} stdc++fs)
+# shendk static library
+if (BUILD_STATIC)
+    add_library(${SHENDK_STATIC_LIB_NAME} STATIC ${SOURCES} ${HEADERS})
+    target_include_directories(${SHENDK_STATIC_LIB_NAME}
+        PUBLIC include
+        PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    target_link_libraries (${SHENDK_STATIC_LIB_NAME} Eigen3::Eigen)
+    target_link_libraries(${SHENDK_STATIC_LIB_NAME} jsoncpp_lib)
+    target_link_libraries(${SHENDK_STATIC_LIB_NAME} zlibstatic)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_link_libraries(${SHENDK_STATIC_LIB_NAME} stdc++fs)
+    endif()
 endif()
 
 # unit tests (gtest)
 if (BUILD_TESTS)
-  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest)
-  include_directories(${GTEST_INCLUDE_DIRS})
-  file(GLOB_RECURSE TEST_SOURCES tests/UTest/*.cpp tests/UTest/*.h)
-  add_executable(shendk_test ${TEST_SOURCES})
-  target_link_libraries(shendk_test PRIVATE ${SHENDK_STATIC_LIB_NAME})
-  target_link_libraries(shendk_test PRIVATE ${CXX_FILESYSTEM_SUPPORT})
-  target_link_libraries(shendk_test PRIVATE gtest)
-  target_link_libraries(shendk_test PRIVATE gmock)
-  target_include_directories(shendk_test PRIVATE include)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/extern/googletest)
+    include_directories(${GTEST_INCLUDE_DIRS})
+    file(GLOB_RECURSE TEST_SOURCES tests/UTest/*.cpp tests/UTest/*.h)
+    add_executable(shendk_test ${TEST_SOURCES})
+    target_link_libraries(shendk_test PRIVATE ${SHENDK_STATIC_LIB_NAME})
+    target_link_libraries(shendk_test PRIVATE ${CXX_FILESYSTEM_SUPPORT})
+    target_link_libraries(shendk_test PRIVATE gtest)
+    target_link_libraries(shendk_test PRIVATE gmock)
+    target_include_directories(shendk_test PRIVATE include)
 endif()

@@ -24,6 +24,7 @@ struct Matrix4f {
     Vector4f col2();
     Vector4f col3();
 
+    std::vector<uint8_t> data();
     std::string str();
 
     float& operator[](int index);

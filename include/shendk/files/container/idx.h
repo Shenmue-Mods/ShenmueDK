@@ -6,6 +6,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Indexing file for AFS.
+ */
 struct IDX : public File {
 
     enum class Type {

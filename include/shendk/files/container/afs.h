@@ -8,6 +8,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue file container with external indexing.
+ */
 struct AFS : public ContainerFile {
     const static uint32_t signature = 5457473;
 

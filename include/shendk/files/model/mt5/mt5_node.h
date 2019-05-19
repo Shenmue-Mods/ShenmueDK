@@ -28,8 +28,8 @@ struct MT5Node : public ModelNode {
         uint32_t unknown;
     };
 
-    MT5Node();
-    MT5Node(std::istream& stream, int64_t baseOffset, MT5Node* par = nullptr);
+    MT5Node(Model* model, MT5Node* parent = nullptr);
+    MT5Node(Model* model, std::istream& stream, int64_t baseOffset, MT5Node* parent = nullptr);
     virtual ~MT5Node();
 
     void read(std::istream& stream , int64_t baseOffset);

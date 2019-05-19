@@ -9,7 +9,7 @@ NAME::NAME() {}
 NAME::NAME(std::istream& stream) { read(stream); }
 
 void NAME::_read(std::istream& stream) {
-    while (stream.tellg() < baseOffset + header.size) {
+    while (stream.tellg() < header.size - 8) {
         TextureID texID;
         stream.read(reinterpret_cast<char*>(&texID), sizeof(TextureID));
         textureIDs.push_back(texID);

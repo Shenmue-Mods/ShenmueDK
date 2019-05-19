@@ -7,6 +7,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue sprite container file made up of TEXN entires.
+ */
 struct SPR : public ContainerFile {
 
     typedef TEXN Entry;

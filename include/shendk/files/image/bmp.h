@@ -4,10 +4,14 @@
 
 namespace shendk {
 
+/**
+ * @brief Bitmap file.
+ */
 struct BMP : public ImageFile {
 
     BMP();
     BMP(const std::string& filepath);
+    BMP(std::shared_ptr<Image> image);
     ~BMP();
 
 protected:

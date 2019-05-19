@@ -3,12 +3,16 @@
 #include <filesystem>
 
 #include "shendk/utils/string_helper.h"
+#include "shendk/files/image/png.h"
 
 namespace shendk {
 namespace obj {
 
 MTL::MTL() {}
 MTL::MTL(const std::string& filepath) { read(filepath); }
+MTL::MTL(std::vector<Texture> _textures)
+    : textures(_textures)
+{}
 
 void MTL::_read(std::istream& stream) {
 
@@ -51,25 +55,15 @@ void MTL::_write(std::ostream& stream) {
                 }
             }
         }
-
-        // TODO: needs png writer
-        /*Bitmap bmp = texture.Image.CreateBitmap();
-        bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
-        using (MemoryStream memory = new MemoryStream())
-        {
-            using (FileStream fs = new FileStream(texturePath, FileMode.Create, FileAccess.ReadWrite))
-            {
-                bmp.Save(memory, ImageFormat.Png);
-                byte[] bytes = memory.ToArray();
-                fs.Write(bytes, 0, bytes.Length);
-            }
-        }*/
         stream << "map_Kd " << textureName << "\n\n";
+
+        PNG png(texture.image);
+        png.write(texturePath);
     }
 }
 
 bool MTL::_isValid(uint32_t signature) {
-
+	return false;
 }
 
 }

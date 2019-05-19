@@ -7,6 +7,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Texture with Shenmue texture ID
+ */
 struct Texture {
     TextureID textureID;
     std::shared_ptr<Image> image;

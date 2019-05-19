@@ -28,7 +28,7 @@ inline float ushortToDegrees(uint16_t value) {
 }
 
 inline uint16_t degreesToUshort(float degrees) {
-    return static_cast<uint16_t>(degrees / 360.0f * 0xffff);
+    return static_cast<uint16_t>(degrees / 360.0f * 65535.0f);
 }
 
 inline static float inverseSqrtFast(float x) {

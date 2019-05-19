@@ -7,6 +7,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Dummy node
+ */
 struct DUMY : public Node {
     DUMY();
     DUMY(std::istream& stream);

@@ -6,6 +6,9 @@
 
 namespace shendk {
 
+/**
+ * @brief CHRD segment file which can be found at the end of an PKF file.
+ */
 struct CHRT : public File {
 
     CHRT();

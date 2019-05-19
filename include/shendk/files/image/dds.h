@@ -4,6 +4,9 @@
 
 namespace shendk {
 
+/**
+ * @brief [NOT IMPLEMENTED] Direct Draw Surface file.
+ */
 struct DDS : public ImageFile {
 
     DDS();

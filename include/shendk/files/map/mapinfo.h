@@ -4,6 +4,9 @@
 
 namespace shendk {
 
+/**
+ * @brief Shenmue map description file.
+ */
 struct MAPINFO : public File {
 
     MAPINFO();

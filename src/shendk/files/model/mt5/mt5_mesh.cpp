@@ -5,14 +5,17 @@
 namespace shendk {
 namespace mt5 {
 
-MT5Mesh::MT5Mesh(std::istream& stream, MT5Node* owner) {
-    read(stream, owner);
+MT5Mesh::MT5Mesh(MT5Node* node) : NodeMesh(node) {}
+MT5Mesh::MT5Mesh(MT5Node* node, std::istream& stream)
+    : NodeMesh(node)
+{
+    read(stream);
 }
 
 MT5Mesh::~MT5Mesh() {}
 
-void MT5Mesh::read(std::istream& stream, MT5Node* owner) {
-    node = owner;
+void MT5Mesh::read(std::istream& stream) {
+
     if (node->parent) {
         parentNode = dynamic_cast<MT5Node*>(node->parent);
     }
@@ -24,27 +27,18 @@ void MT5Mesh::read(std::istream& stream, MT5Node* owner) {
 
     stream.seekg(header.verticesOffset, std::ios::beg);
     for (int i = 0; i < header.vertexCount; i++) {
-        float posX, posY, posZ, normX, normY, normZ;
-        stream.read(reinterpret_cast<char*>(&posX), sizeof(float));
-        stream.read(reinterpret_cast<char*>(&posY), sizeof(float));
-        stream.read(reinterpret_cast<char*>(&posZ), sizeof(float));
-        stream.read(reinterpret_cast<char*>(&normX), sizeof(float));
-        stream.read(reinterpret_cast<char*>(&normY), sizeof(float));
-        stream.read(reinterpret_cast<char*>(&normZ), sizeof(float));
-        vertexPositions.push_back(Vector3f(posX, posY, posZ));
-        vertexNormals.push_back(Vector3f(normX, normY, normZ));
-    }
-
-    if (parentNode && parentNode->mesh) {
-        Matrix4f matrix = node->getTransformMatrixSelf().invert();
-        for (int i = 0; i < parentNode->mesh->vertexCount; i++) {
-            Vector3f pos = parentNode->mesh->vertexPositions[i];
-            Vector3f norm = parentNode->mesh->vertexNormals[i];
-            pos = pos.transformPosition(matrix);
-            norm = norm.transformPosition(matrix);
-            vertexPositions.push_back(pos);
-            vertexNormals.push_back(norm);
-        }
+        Vector3f pos;
+        Vector3f norm;
+        stream.read(reinterpret_cast<char*>(&pos), sizeof(Vector3f));
+        stream.read(reinterpret_cast<char*>(&norm), sizeof(Vector3f));
+        node->model->vertexBuffer.positions.push_back(pos);
+        node->model->vertexBuffer.normals.push_back(norm);
+        pos = pos.transformPosition(node->getTransformMatrix());
+        norm = norm.transformPosition(node->getTransformMatrix());
+        node->model->vertexBuffer.t_positions.push_back(pos);
+        node->model->vertexBuffer.t_normals.push_back(norm);
+        node->model->vertexBuffer.weights.push_back(1.0f);
+        node->model->vertexBuffer.joints.push_back(node->getBoneID());
     }
 
     int64_t instructionOffset;

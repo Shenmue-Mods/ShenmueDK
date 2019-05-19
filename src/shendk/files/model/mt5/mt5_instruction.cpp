@@ -161,36 +161,12 @@ void InStrip::_read(std::istream& stream) {
             int16_t vertexIndex = 0;
             stream.read(reinterpret_cast<char*>(&vertexIndex), sizeof(int16_t));
             ModelNode* parent = mesh->node->parent;
-            while (vertexIndex < 0) {
-                if (parent) {
-                    if (parent->mesh) {
-                        /*mesh->vertexCount += parent->mesh->vertexCount;
-                        mesh->vertexPositions.insert(mesh->vertexPositions.end(),
-                                                     parent->mesh->vertexPositions.begin(),
-                                                     parent->mesh->vertexPositions.end());
-                        mesh->vertexNormals.insert(mesh->vertexNormals.end(),
-                                                   parent->mesh->vertexNormals.begin(),
-                                                   parent->mesh->vertexNormals.end());
-                        vertexIndex = parent->mesh->vertexCount + vertexIndex;
-                        if (vertexIndex > 0) {
-                            vertexIndex += mesh->vertexCount;
-                            break;
-                        }*/
-                        vertexIndex = mesh->vertexCount + vertexIndex + parent->mesh->vertexCount;
-                    } else {
+            uint32_t index = mesh->getIndex(vertexIndex);
 
-                        vertexIndex = 0;
-                        break;
-                    }
-                    //parent = parent->parent;
-                } else {
-                    vertexIndex = 0;
-                    break;
-                }
-            }
-
-            face.positionIndices.push_back(vertexIndex);
-            face.normalIndices.push_back(vertexIndex);
+            face.positionIndices.push_back(index);
+            face.normalIndices.push_back(index);
+            face.weightIndices.push_back(index);
+            face.jointIndices.push_back(index);
 
             if (uv) {
                 uint16_t u,v;
@@ -213,8 +189,8 @@ void InStrip::_read(std::istream& stream) {
                         texV = texV * 0.00000000023283064;
                     }
                 }
-                mesh->vertexUVs.push_back(Vector2f(texU, texV));
-                face.uvIndices.push_back(mesh->vertexUVs.size() - 1);
+                face.texcoordIndices.push_back(mesh->vertexBuffer().texcoords.size());
+                mesh->vertexBuffer().texcoords.push_back(Vector2f(texU, texV));
             }
 
             if (color) {
@@ -222,8 +198,8 @@ void InStrip::_read(std::istream& stream) {
                 stream.read(reinterpret_cast<char*>(&bgra), sizeof(BGRA));
                 Vector4f color(bgra.b, bgra.g, bgra.r, bgra.a);
                 color /= 255.0f;
-                mesh->vertexColors.push_back(color);
-                face.colorIndices.push_back(mesh->vertexColors.size() - 1);
+                face.colorIndices.push_back(mesh->vertexBuffer().colors.size());
+                mesh->vertexBuffer().colors.push_back(color);
             }
         }
 

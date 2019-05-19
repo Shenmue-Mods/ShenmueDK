@@ -9,6 +9,9 @@
 
 namespace shendk {
 
+/**
+ * @brief SM1 model container file
+ */
 struct MT5 : public ModelFile {
     const static uint32_t signature = 1296257608;
 

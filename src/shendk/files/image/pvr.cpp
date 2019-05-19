@@ -1,9 +1,12 @@
 #include "shendk/files/image/pvr.h"
 
+#include <math.h>
+
 #include "shendk/files/image/pvr/data_codec.h"
 #include "shendk/files/image/pvr/pixel_codec.h"
 #include "shendk/files/image/pvr/compression_codec.h"
 #include "shendk/files/image/pvr/vector_quantizer.h"
+
 
 namespace shendk {
 
@@ -112,11 +115,18 @@ void PVR::_read(std::istream& stream) {
         // decode mipmaps
         mipmaps.clear();
         if (dataCodec->hasMipmaps()) {
-            for (int i = 0, size = header.width; i < mipmapOffsets.size(); i++, size >>= 1) {
+            for (uint16_t i = 0, size = header.width; i < mipmapOffsets.size(); i++, size >>= 1) {
                 stream.seekg(baseOffset + dataOffset + mipmapOffsets[i], std::ios::beg);
                 uint8_t* pixels = dataCodec->decode(stream, size, size, pixelCodec);
                 std::shared_ptr<Image> mipmap(new Image(size, size));
-                memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
+                for (int j = 0; j < size * size; j++) {
+                    mipmap->operator[](j).r = pixels[j * 4];
+                    mipmap->operator[](j).g = pixels[j * 4 + 1];
+                    mipmap->operator[](j).b = pixels[j * 4 + 2];
+                    mipmap->operator[](j).a = pixels[j * 4 + 3];
+                }
+                mipmap->flipVertical();
+                //memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
                 mipmaps.push_back(mipmap);
                 delete[] pixels;
             }
@@ -124,7 +134,14 @@ void PVR::_read(std::istream& stream) {
             stream.seekg(baseOffset + dataOffset + mipmapOffsets[0], std::ios::beg);
             uint8_t* pixels = dataCodec->decode(stream, header.width, header.height, pixelCodec);
             std::shared_ptr<Image> mipmap(new Image(header.width, header.height));
-            memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
+            for (int i = 0; i < header.width * header.height; i++) {
+                mipmap->operator[](i).r = pixels[i * 4];
+                mipmap->operator[](i).g = pixels[i * 4 + 1];
+                mipmap->operator[](i).b = pixels[i * 4 + 2];
+                mipmap->operator[](i).a = pixels[i * 4 + 3];
+            }
+            mipmap->flipVertical();
+            //memcpy(mipmap->getDataPtr(), pixels, mipmap->size());
             mipmaps.push_back(mipmap);
             delete[] pixels;
         }

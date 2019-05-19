@@ -6,6 +6,10 @@
 
 namespace shendk {
 
+/**
+ * @brief Khronos glTF file.
+ *        Unusable till glTF supports seperate indices for each vertex attribute.
+ */
 struct GLTF : public ModelFile {
 
     GLTF();
@@ -19,11 +23,13 @@ protected:
 
 private:
 
+    void convertVertexBuffer(tinygltf::Model& m, VertexBuffer& vb);
+
     // node based model
     void convertNodeRecursive(tinygltf::Model* m, ModelNode* node, int parentIndex = -1);
 
     // stuff for skinned meshes
-    void convertNodeRecursiveBone(tinygltf::Model* m, ModelNode* node, std::map<BoneID, int>& boneMap, int parentIndex = -1); // model rig
+    void convertNodeRecursiveBone(tinygltf::Model* m, ModelNode* node, std::map<BoneID, int>& boneMap, std::vector<Matrix4f>& inverse, int parentIndex = -1); // model rig
     void convertNodeRecursiveProxy(tinygltf::Model* m, ModelNode* node, std::map<BoneID, int>& boneMap, tinygltf::Mesh& mesh); // single mesh
 
     inline static uint16_t findBoneNode(ModelNode* node, std::map<BoneID, int>& boneMap) {
