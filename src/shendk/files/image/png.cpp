@@ -24,12 +24,6 @@ void PNG::_read(std::istream& stream) {
 
     std::shared_ptr<Image> image(new Image(width, height));
     memcpy(image->getDataPtr(), rgba, width * height * 4);
-    /*for (int i = 0; i < width*height; i++) {
-        image->operator[](i).r = rgba[i * 4];
-        image->operator[](i).g = rgba[i * 4 + 1];
-        image->operator[](i).b = rgba[i * 4 + 2];
-        image->operator[](i).a = rgba[i * 4 + 3];
-    }*/
     mipmaps.push_back(image);
 
     stbi_image_free(rgba);

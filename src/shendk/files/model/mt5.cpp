@@ -78,7 +78,6 @@ void MT5::_read(std::istream& stream) {
     for (auto& texture : texnEntries) {
         Texture tex;
         tex.textureID = texture.textureID;
-        std::cout << tex.textureID.hexStr() << std::endl;
         tex.image = texture.pvrt.getImage();
         model.textures.push_back(tex);
     }
