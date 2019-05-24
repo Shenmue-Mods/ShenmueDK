@@ -120,9 +120,9 @@ void PVR::_read(std::istream& stream) {
                 uint8_t* pixels = dataCodec->decode(stream, size, size, pixelCodec);
                 std::shared_ptr<Image> mipmap(new Image(size, size));
                 for (int j = 0; j < size * size; j++) {
-                    mipmap->operator[](j).r = pixels[j * 4];
+                    mipmap->operator[](j).b = pixels[j * 4];
                     mipmap->operator[](j).g = pixels[j * 4 + 1];
-                    mipmap->operator[](j).b = pixels[j * 4 + 2];
+                    mipmap->operator[](j).r = pixels[j * 4 + 2];
                     mipmap->operator[](j).a = pixels[j * 4 + 3];
                 }
                 mipmap->flipVertical();
@@ -135,9 +135,9 @@ void PVR::_read(std::istream& stream) {
             uint8_t* pixels = dataCodec->decode(stream, header.width, header.height, pixelCodec);
             std::shared_ptr<Image> mipmap(new Image(header.width, header.height));
             for (int i = 0; i < header.width * header.height; i++) {
-                mipmap->operator[](i).r = pixels[i * 4];
+                mipmap->operator[](i).b = pixels[i * 4];
                 mipmap->operator[](i).g = pixels[i * 4 + 1];
-                mipmap->operator[](i).b = pixels[i * 4 + 2];
+                mipmap->operator[](i).r = pixels[i * 4 + 2];
                 mipmap->operator[](i).a = pixels[i * 4 + 3];
             }
             mipmap->flipVertical();
