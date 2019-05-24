@@ -2,7 +2,7 @@
 
 #include "shendk/files/model/mt5.h"
 #include "shendk/files/model/obj.h"
-#include "shendk/files/model/gltf.h"
+#include "shendk/files/model/dae.h"
 
 namespace {
 
@@ -13,8 +13,8 @@ TEST(MT5, read_write)
     shendk::OBJ obj(mt5.model);
     obj.write("H:\\UTest\\ykg_m.mt5.obj");
 
-    shendk::GLTF gltf(mt5.model);
-    gltf.write("H:\\UTest\\ykg_m.mt5.gltf");
+    shendk::DAE dae(mt5.model);
+    dae.write("H:\\UTest\\ykg_m.mt5.dae");
 
     SUCCEED();
 }

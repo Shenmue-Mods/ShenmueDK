@@ -1,6 +1,7 @@
 #include "shendk/types/image.h"
 
 #include <stdint.h>
+#include <memory>
 
 namespace shendk {
 
@@ -68,6 +69,14 @@ RGBA& RGBA::operator/=(const RGBA& rhs) {
     return *this;
 }
 
+Image::Image(Image& image)
+    : m_width(image.width())
+    , m_height(image.height())
+{
+    m_rawData = new RGBA[m_width * m_height];
+    memcpy(m_rawData, image.getDataPtr(), image.size());
+}
+
 Image::Image(uint32_t width, uint32_t height)
     : m_width(width)
     , m_height(height)
@@ -108,11 +117,60 @@ void Image::flipVertical() {
     }
 }
 
+void Image::flipHorizontal() {
+    for (uint32_t y = 0; y < m_height; y++) {
+        for (uint32_t x = 0; x < m_width / 2; x++) {
+            uint32_t dstX = m_width - 1 - x;
+            uint32_t srcIndex = y * m_width + x;
+            uint32_t dstIndex = y * m_width + dstX;
+            RGBA src = m_rawData[srcIndex];
+            m_rawData[srcIndex] = m_rawData[dstIndex];
+            m_rawData[dstIndex] = src;
+        }
+    }
+}
+
+Image Image::mirrorRepeat() {
+    Image result(m_width * 2, m_height * 2);
+    Image copy(*this);
+
+    result.writeImage(copy, 0, 0, 0, 0, m_width, m_height);
+    copy.flipVertical();
+    result.writeImage(copy, 0, 0, 0, m_height, m_width, m_height);
+    copy.flipHorizontal();
+    result.writeImage(copy, 0, 0, m_width, m_height, m_width, m_height);
+    copy.flipVertical();
+    result.writeImage(copy, 0, 0, m_width, 0, m_width, m_height);
+
+    return result;
+}
+
+void Image::writeImage(Image& src, int srcX, int srcY, int dstX, int dstY, int width, int height) {
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int srcIndex = (y + srcY) * src.width() + (x + srcX);
+            int dstIndex = (y + dstY) * m_width + (x + dstX);
+            m_rawData[dstIndex] = src[srcIndex];
+        }
+    }
+}
+
 Image* Image::resize(uint32_t width, uint32_t height) {
     Image* resizedImage = new Image(width, height);
 
     // TODO: implement
     return resizedImage;
+}
+
+std::vector<BGRA> Image::createBGRA8() {
+    std::vector<BGRA> result(m_width * m_height);
+    for (size_t i = 0; i < result.size(); i++) {
+        result[i].r = m_rawData[i].r;
+        result[i].g = m_rawData[i].g;
+        result[i].b = m_rawData[i].b;
+        result[i].a = m_rawData[i].a;
+    }
+    return result;
 }
 
 }

@@ -233,6 +233,8 @@ struct ModelNode : std::enable_shared_from_this<ModelNode> {
     ModelNode* parent = nullptr;
 
     NodeMesh* mesh = nullptr;
+
+    std::string name = "";
 };
 
 struct Model {

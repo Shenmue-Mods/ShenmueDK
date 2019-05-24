@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <vector>
 
 namespace shendk {
 
@@ -33,6 +34,7 @@ struct RGBA {
 
 struct Image {
 
+    Image(Image& image);
     Image(uint32_t width, uint32_t height);
     ~Image();
 
@@ -52,7 +54,11 @@ struct Image {
     RGBA&       operator[](int index);
 
     void flipVertical();
+    void flipHorizontal();
+    Image mirrorRepeat();
+    void writeImage(Image& src, int srcX, int srcY, int dstX, int dstY, int width, int height);
     Image* resize(uint32_t width, uint32_t height);
+    std::vector<BGRA> createBGRA8();
 
 protected:
     uint32_t m_width;

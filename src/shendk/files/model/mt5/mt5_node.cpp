@@ -30,6 +30,7 @@ void MT5Node::read(std::istream& stream , int64_t baseOffset) {
     position = Vector3f(data.posX, data.posY, data.posZ);
     scale = Vector3f(data.sclX, data.sclY, data.sclZ);
     rotation = Vector3f(ushortToDegrees(data.rotX), ushortToDegrees(data.rotY), ushortToDegrees(data.rotZ));
+    name = std::string(data.name, 4);
 
     // read mesh data
     if (data.meshOffset != 0) {
