@@ -1,6 +1,7 @@
 #include "shendk/types/vector.h"
 
 #include "shendk/types/matrix.h"
+#include "shendk/utils/math.h"
 
 #include <stdexcept>
 #include <math.h>
@@ -48,12 +49,12 @@ Vector3f Vector3f::operator-() {
     return Vector3f(-x, -y, -z);
 }
 
-Vector3f Vector3f::operator+(float value) {
+Vector3f Vector3f::operator+(float value) const {
     Vector3f v(*this);
     v += value;
     return v;
 }
-Vector3f Vector3f::operator+(const Vector3f& rhs) {
+Vector3f Vector3f::operator+(const Vector3f& rhs) const {
     Vector3f v(*this);
     v += rhs;
     return v;
@@ -67,12 +68,12 @@ Vector3f Vector3f::operator+=(const Vector3f& rhs) {
     return *this;
 }
 
-Vector3f Vector3f::operator-(float value) {
+Vector3f Vector3f::operator-(float value) const {
     Vector3f v(*this);
     v -= value;
     return v;
 }
-Vector3f Vector3f::operator-(const Vector3f& rhs) {
+Vector3f Vector3f::operator-(const Vector3f& rhs) const {
     Vector3f v(*this);
     v -= rhs;
     return v;
@@ -86,12 +87,12 @@ Vector3f Vector3f::operator-=(const Vector3f& rhs) {
     return *this;
 }
 
-Vector3f Vector3f::operator*(float value) {
+Vector3f Vector3f::operator*(float value) const {
     Vector3f v(*this);
     v *= value;
     return v;
 }
-Vector3f Vector3f::operator*(const Vector3f& rhs) {
+Vector3f Vector3f::operator*(const Vector3f& rhs) const {
     Vector3f v(*this);
     v *= rhs;
     return v;
@@ -105,12 +106,12 @@ Vector3f Vector3f::operator*=(const Vector3f& rhs) {
     return *this;
 }
 
-Vector3f Vector3f::operator/(float value) {
+Vector3f Vector3f::operator/(float value) const {
     Vector3f v(*this);
     v /= value;
     return v;
 }
-Vector3f Vector3f::operator/(const Vector3f& rhs) {
+Vector3f Vector3f::operator/(const Vector3f& rhs) const {
     Vector3f v(*this);
     v /= rhs;
     return v;
@@ -124,8 +125,21 @@ Vector3f Vector3f::operator/=(const Vector3f& rhs) {
     return *this;
 }
 
-float Vector3f::length() { return std::sqrt(x * x + y * y + z * z); }
-float Vector3f::lengthSquared() { return x * x + y * y + z * z; }
+bool Vector3f::operator==(const Vector3f& rhs) {
+    return (x == rhs.x && y == rhs.y && z == rhs.z);
+}
+
+Vector3f Vector3f::abs() { return abs(*this); }
+Vector3f Vector3f::abs(const Vector3f& v) {
+    Vector3f result(v);
+    result.x = std::abs(v.x);
+    result.y = std::abs(v.y);
+    result.z = std::abs(v.z);
+    return result;
+}
+
+float Vector3f::length() const { return std::sqrt(x * x + y * y + z * z); }
+float Vector3f::lengthSquared() const { return x * x + y * y + z * z; }
 
 void Vector3f::normalize() {
     float scale = 1.0f / length();
@@ -154,6 +168,29 @@ void Vector3f::cross(const Vector3f& lhs, const Vector3f& rhs, Vector3f& out) {
     out.x = lhs.y * rhs.z - lhs.z * rhs.y;
     out.y = lhs.z * rhs.x - lhs.x * rhs.z;
     out.z = lhs.x * rhs.y - lhs.y * rhs.x;
+}
+
+float Vector3f::angle(const Vector3f& rhs) { return angle(*this, rhs); }
+float Vector3f::angle(const Vector3f& lhs, const Vector3f& rhs) {
+    return std::acos(clamp(dot(lhs, rhs) / (lhs.length() * rhs.length()), -1.0f, 1.0f));
+}
+
+bool Vector3f::compareDir(const Vector3f& rhs) { return compareDir(*this, rhs); }
+bool Vector3f::compareDir(const Vector3f& lhs, const Vector3f& rhs) {
+    return ((lhs.x > 0 && rhs.x > 0) || (lhs.x < 0 && rhs.x < 0) || (lhs.x == 0.0f && rhs.x == 0.0f)) &&
+           ((lhs.y > 0 && rhs.y > 0) || (lhs.y < 0 && rhs.y < 0) || (lhs.y == 0.0f && rhs.y == 0.0f)) &&
+           ((lhs.z > 0 && rhs.z > 0) || (lhs.z < 0 && rhs.z < 0) || (lhs.z == 0.0f && rhs.z == 0.0f));
+}
+
+float Vector3f::distance(const Vector3f& rhs) const { return distance(*this, rhs); }
+float Vector3f::distance(const Vector3f& lhs, const Vector3f& rhs) {
+    float x = lhs.x - rhs.x;
+    float y = lhs.y - rhs.y;
+    float z = lhs.z - rhs.z;
+    float dist;
+    dist = x * x + y * y + z * z;
+    dist = sqrt(dist);
+    return dist;
 }
 
 Vector3f Vector3f::transformPosition(const Matrix4f& rhs) { return transformPosition(*this, rhs); }

@@ -7,6 +7,7 @@
 
 #include "shendk/types/vector.h"
 #include "shendk/types/matrix.h"
+#include "shendk/types/bounding_box.h"
 
 #include "shendk/files/file.h"
 #include "shendk/types/texture.h"
@@ -118,6 +119,36 @@ struct Material {
     TextureWrapMode textureWrapMode;
     bool unlit;
     bool transparent;
+};
+
+
+struct Vertex {
+    Vector3f position;
+    Vector3f normal;
+
+    Vertex();
+    Vertex(Vector3f pos, Vector3f norm);
+};
+
+struct Triangle {
+    Triangle();
+    Triangle(Vector3f _p1, Vector3f _p2, Vector3f _p3,
+             Vector3f _n1, Vector3f _n2, Vector3f _n3);
+
+    Vector3f faceNormal();
+    static Vector3f faceNormal(const Vector3f& _p1, const Vector3f& _p2, const Vector3f& _p3);
+    static Vector3f faceCenter(const Vector3f& _p1, const Vector3f& _p2, const Vector3f& _p3);
+    static float faceArea(const Vector3f& _p1, const Vector3f& _p2, const Vector3f& _p3);
+
+private:
+    AABoundingBox bounds;
+    Vector3f p1;
+    Vector3f p2;
+    Vector3f p3;
+    Vector3f n1;
+    Vector3f n2;
+    Vector3f n3;
+    Vector3f center;
 };
 
 
@@ -241,6 +272,9 @@ struct Model {
     std::shared_ptr<ModelNode> rootNode;
     std::vector<Texture> textures;
     VertexBuffer vertexBuffer;
+
+    void cleanMesh(bool removeBackfaces = true, bool weldSimilar = true, bool removeUnused = true,
+                   float weldThreshold = 0.000005f, float backfaceAngle = 270.0f);
 };
 
 struct Animation {

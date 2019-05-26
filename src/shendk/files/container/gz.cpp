@@ -1,5 +1,9 @@
 #include "shendk/files/container/gz.h"
 
+#if defined(_WIN32)
+    #define ZLIB_WINAPI
+#endif
+
 #include "zlib.h"
 
 namespace shendk {

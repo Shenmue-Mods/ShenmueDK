@@ -5,6 +5,8 @@
 
 namespace shendk {
 
+bool MT5::cleanMeshOnLoad = false;
+
 MT5::MT5() = default;
 MT5::MT5(const std::string& filepath) { read(filepath); }
 MT5::~MT5() {}
@@ -18,6 +20,9 @@ void MT5::_read(std::istream& stream) {
     // read nodes recursively
     stream.seekg(baseOffset + header.firstNodeOffset, std::ios::beg);
     model.rootNode = std::shared_ptr<ModelNode>(new mt5::MT5Node(&model, stream, baseOffset));
+
+    // clean mesh
+    if (cleanMeshOnLoad) { cleanMesh(); }
 
     // get end of file
     stream.seekg(0, std::ios::end);
@@ -99,6 +104,10 @@ bool MT5::_isValid(uint32_t signature) {
     if (this->signature != signature)
         return false;
     return true;
+}
+
+void MT5::cleanMesh() {
+    model.cleanMesh();
 }
 
 }

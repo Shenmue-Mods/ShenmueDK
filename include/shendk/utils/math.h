@@ -40,4 +40,13 @@ inline static float inverseSqrtFast(float x) {
     return x;
 }
 
+inline float clamp(float value, float min, float max) {
+    return std::max(std::min(value, max), min);
+}
+
+inline double clamp(double value, double min, double max) {
+    return std::max(std::min(value, max), min);
+}
+
+
 }

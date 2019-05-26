@@ -14,6 +14,7 @@ namespace shendk {
  */
 struct MT5 : public ModelFile {
     const static uint32_t signature = 1296257608;
+    static bool cleanMeshOnLoad;
 
     struct Header {
         uint32_t signature;
@@ -24,6 +25,8 @@ struct MT5 : public ModelFile {
     MT5();
     MT5(const std::string& filepath);
     ~MT5();
+
+    void cleanMesh();
 
 	MT5::Header header;
 

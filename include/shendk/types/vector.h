@@ -40,28 +40,33 @@ struct Vector3f {
 
     Vector3f operator-();
 
-    Vector3f operator+(float value);
-    Vector3f operator+(const Vector3f& rhs);
+    Vector3f operator+(float value) const;
+    Vector3f operator+(const Vector3f& rhs) const;
     Vector3f operator+=(float value);
     Vector3f operator+=(const Vector3f& rhs);
 
-    Vector3f operator-(float value);
-    Vector3f operator-(const Vector3f& rhs);
+    Vector3f operator-(float value) const;
+    Vector3f operator-(const Vector3f& rhs) const;
     Vector3f operator-=(float value);
     Vector3f operator-=(const Vector3f& rhs);
 
-    Vector3f operator*(float value);
-    Vector3f operator*(const Vector3f& rhs);
+    Vector3f operator*(float value) const;
+    Vector3f operator*(const Vector3f& rhs) const;
     Vector3f operator*=(float value);
     Vector3f operator*=(const Vector3f& rhs);
 
-    Vector3f operator/(float value);
-    Vector3f operator/(const Vector3f& rhs);
+    Vector3f operator/(float value) const;
+    Vector3f operator/(const Vector3f& rhs) const;
     Vector3f operator/=(float value);
     Vector3f operator/=(const Vector3f& rhs);
 
-    float length();
-    float lengthSquared();
+    bool operator==(const Vector3f& rhs);
+
+    Vector3f abs();
+    static Vector3f abs(const Vector3f& v);
+
+    float length() const;
+    float lengthSquared() const;
 
     void normalize();
     Vector3f normalized();
@@ -72,6 +77,15 @@ struct Vector3f {
     Vector3f cross(const Vector3f& rhs);
     static Vector3f cross(const Vector3f& lhs, const Vector3f& rhs);
     static void cross(const Vector3f& lhs, const Vector3f& rhs, Vector3f& out);
+
+    float angle(const Vector3f& rhs);
+    static float angle(const Vector3f& lhs, const Vector3f& rhs);
+
+    bool compareDir(const Vector3f& rhs);
+    static bool compareDir(const Vector3f& lhs, const Vector3f& rhs);
+
+    float distance(const Vector3f& rhs) const;
+    static float distance(const Vector3f& lhs, const Vector3f& rhs);
 
     Vector3f transformPosition(const Matrix4f& rhs);
     static Vector3f transformPosition(const Vector3f& lhs, const Matrix4f& rhs);

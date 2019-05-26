@@ -71,6 +71,8 @@ void OBJ::_write(std::ostream& stream) {
         if (node->mesh->surfaces.size() == 0) continue;
 
         for (auto face : node->mesh->surfaces) {
+            if (face.indexCount() == 0) continue;
+
             bool hasUV = face.texcoordIndices.size() > 0;
             bool hasNormal = face.normalIndices.size() > 0;
 

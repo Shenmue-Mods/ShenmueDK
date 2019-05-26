@@ -372,7 +372,7 @@ void DAE::_write(std::ostream& stream) {
     XMLPrinter printer;
     doc.Accept(&printer);
     std::string xml = printer.CStr();
-    std::cout << xml << std::endl;
+    //std::cout << xml << std::endl;
     std::string xmlHeader = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
     stream.write(xmlHeader.c_str(), xmlHeader.size());
     stream.write(&xml[0], xml.size());

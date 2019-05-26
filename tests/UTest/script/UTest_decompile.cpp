@@ -25,7 +25,7 @@ TEST(SCN, decompiler)
         throw new std::runtime_error("Couldn't open file: " + filepath + "\n");
     }
 
-    std::cout << "### LARGE ###" << std::endl;
+    /*std::cout << "### LARGE ###" << std::endl;
 
     std::string filepath2 = "H:\\UTest\\ScnScript_Large.bin";
     if (!fs::exists(filepath2)) return;
@@ -35,7 +35,7 @@ TEST(SCN, decompiler)
         fstream2.close();
     } else {
         throw new std::runtime_error("Couldn't open file: " + filepath2 + "\n");
-    }
+    }*/
 
     SUCCEED();
 }

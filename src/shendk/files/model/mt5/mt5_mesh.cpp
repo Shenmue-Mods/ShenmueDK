@@ -33,10 +33,10 @@ void MT5Mesh::read(std::istream& stream) {
         stream.read(reinterpret_cast<char*>(&norm), sizeof(Vector3f));
         node->model->vertexBuffer.positions.push_back(pos);
         node->model->vertexBuffer.normals.push_back(norm);
-        pos = pos.transformPosition(node->getTransformMatrix());
-        norm = norm.transformPosition(node->getTransformMatrix());
-        node->model->vertexBuffer.t_positions.push_back(pos);
-        node->model->vertexBuffer.t_normals.push_back(norm);
+        Vector3f t_pos = pos.transformPosition(node->getTransformMatrix());
+        Vector3f t_norm = norm.transformPosition(node->getTransformMatrix());
+        node->model->vertexBuffer.t_positions.push_back(t_pos);
+        node->model->vertexBuffer.t_normals.push_back(t_norm);
         node->model->vertexBuffer.weights.push_back(1.0f);
         node->model->vertexBuffer.joints.push_back(node->getBoneID());
     }
