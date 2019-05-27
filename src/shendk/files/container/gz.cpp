@@ -86,10 +86,10 @@ char* GZ::inflateStream(std::istream& inStream, uint64_t& bufferSize) {
                 } else {
                     newSize = UINT_MAX;
                 }
-				uint8_t* temp = new uint8_t[newSize];
-				memcpy(temp, outBuffer, outBufferSize);
+                uint8_t* temp = new uint8_t[newSize];
+                memcpy(temp, outBuffer, outBufferSize);
                 delete[] outBuffer;
-				outBuffer = temp;
+                outBuffer = temp;
                 if (outBuffer == nullptr) return nullptr;
                 outBufferSize = newSize;
             }
