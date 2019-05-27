@@ -152,7 +152,7 @@ public:
     }
 
     char_type* getBuffer(size_t& bufferSize) {
-        bufferSize = m_bufferSize;
+        bufferSize = static_cast<size_t>(out_cur() - out_beg());
         return m_buffer;
     }
 

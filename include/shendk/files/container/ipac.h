@@ -48,6 +48,12 @@ struct IPAC : public File {
             stream.write(data.data(), meta.fileSize);
         }
 
+        std::vector<char> getData() { return data; }
+        void setData(std::vector<char>& _data) {
+            data = _data;
+            meta.fileSize = data.size();
+        }
+
         EntryMeta meta;
 
     private:

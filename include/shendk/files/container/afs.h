@@ -60,6 +60,12 @@ struct AFS : public ContainerFile {
             stream.write(data.data(), offset.fileSize);
         }
 
+        std::vector<char> getData() { return data; }
+        void setData(std::vector<char>& _data) {
+            data = _data;
+            offset.fileSize = data.size();
+        }
+
         OffsetEntry offset;
         MetaEntry meta;
         std::string idxFilename;
