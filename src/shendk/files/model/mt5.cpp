@@ -9,6 +9,7 @@ bool MT5::cleanMeshOnLoad = false;
 
 MT5::MT5() = default;
 MT5::MT5(const std::string& filepath) { read(filepath); }
+MT5::MT5(std::istream& stream) { read(stream); }
 MT5::~MT5() {}
 
 void MT5::_read(std::istream& stream) {

@@ -23,7 +23,8 @@ struct MT5 : public ModelFile {
     };
 
     MT5();
-    MT5(const std::string& filepath);
+    MT5(const std::string& filepath); 
+    MT5(std::istream& stream);
     ~MT5();
 
     void cleanMesh();
