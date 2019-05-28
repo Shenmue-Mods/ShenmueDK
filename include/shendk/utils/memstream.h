@@ -55,7 +55,10 @@ public:
                 return Base::overflow(c);
             } else {
                 // allocate more memory
-                m_buffer = reinterpret_cast<char*>(realloc(m_buffer, m_bufferSize));
+                CharT* temp = new CharT[m_bufferSize];
+                memcpy(temp, m_buffer, oldSize);
+                delete[] m_buffer;
+                m_buffer = temp;
                 setOut(m_buffer, m_buffer + oldSize, m_buffer + m_bufferSize);
                 int inCurOffset = static_cast<int>(in_cur() - in_beg());
                 setIn(m_buffer, m_buffer + inCurOffset, m_buffer + m_bufferSize);

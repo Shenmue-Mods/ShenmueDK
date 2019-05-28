@@ -55,7 +55,7 @@ void DAE::_write(std::ostream& stream) {
     unit->SetAttribute("meter", "1");
     asset->InsertEndChild(unit);
     XMLElement* up_axis = doc.NewElement("up_axis");
-    up_axis->SetText("Z_UP");
+    up_axis->SetText("Y_UP");
     asset->InsertEndChild(up_axis);
     root->InsertEndChild(asset);
 
