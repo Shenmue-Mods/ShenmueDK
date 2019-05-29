@@ -267,13 +267,17 @@ VertexBuffer& NodeMesh::vertexBuffer() {
 
 uint32_t NodeMesh::getIndex(int32_t index) {
     if (index < 0) {
-        NodeMesh* parentMesh = node->parent->mesh;
-        if (parentMesh) {
-            int32_t newIndex = parentMesh->vertexBufferOffset + parentMesh->vertexCount + index;
-            if (newIndex < 0) {
-                return parentMesh->getIndex(newIndex);
-            } else {
-                return newIndex;
+        if (node->parent != nullptr && node->parent->mesh != nullptr)
+        {
+            NodeMesh* parentMesh = node->parent->mesh;
+            if (parentMesh) {
+                int32_t newIndex = parentMesh->vertexBufferOffset + parentMesh->vertexCount + index;
+                if (newIndex < 0) {
+                    return parentMesh->getIndex(newIndex);
+                }
+                else {
+                    return newIndex;
+                }
             }
         }
     } else {
