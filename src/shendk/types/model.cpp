@@ -16,14 +16,22 @@ Vertex::Vertex(Vector3f pos, Vector3f norm) : position(pos), normal(norm) {}
 Triangle::Triangle() {
 
 }
+Triangle::Triangle(Vector3f _p1, Vector3f _p2, Vector3f _p3)
+    : p1(_p1), p2(_p2), p3(_p3)
+{
+    m_center = (p1 + p2 + p3) / 3.0f;
+    m_faceNormal = faceNormal(p1, p2, p3);
+}
 Triangle::Triangle(Vector3f _p1, Vector3f _p2, Vector3f _p3,
                    Vector3f _n1, Vector3f _n2, Vector3f _n3)
     : p1(_p1), p2(_p2), p3(_p3)
     , n1(_n1), n2(_n2), n3(_n3)
-    , bounds(_p1, _p2, _p3)
 {
-    center = (p1 + p2 + p3) / 3.0f;
+    m_center = (p1 + p2 + p3) / 3.0f;
+    m_faceNormal = faceNormal(p1, p2, p3);
 }
+
+const Vector3f& Triangle::center() { return m_center; }
 
 Vector3f Triangle::faceNormal() {
     Vector3f normal = Vector3f::dot(p3 - p1, p2 - p1);
@@ -52,6 +60,12 @@ float Triangle::faceArea(const Vector3f& _p1, const Vector3f& _p2, const Vector3
     float s = (a + b + c) / 2.0f;
     float A = sqrtf(s * (s-a) * (s-b) * (s-b));
     return (A > 0.0f) ? A : -A;
+}
+
+float Triangle::difference(const Triangle& t1, const Triangle& t2) {
+    float diff1 = Vector3f::distance(t1.m_faceNormal, -t2.m_faceNormal);
+    float diff2 = Vector3f::distance(t1.m_center, t2.m_center);
+    return diff2;
 }
 
 std::vector<uint8_t> VertexBuffer::getPositionData(Matrix4f matrix) {
@@ -338,18 +352,234 @@ BoneID ModelNode::getBoneID() {
 void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused, float weldThreshold, float backfaceAngle) {
     const float removeThreshold = backfaceAngle / 180.0f;
 
+    struct IndexTriangle {
+        uint32_t i1;
+        uint32_t i2;
+        uint32_t i3;
+
+        uint32_t max;
+
+        IndexTriangle() {}
+        IndexTriangle(uint32_t _i1, uint32_t _i2, uint32_t _i3) {
+            i1 = _i1;
+            i2 = _i2;
+            i3 = _i3;
+            max = std::max(std::max(i1, i2), i3);
+        }
+    };
+
+    struct MeshTriangle {
+        ModelNode* node;
+        Material mat;
+        IndexTriangle pos;
+        IndexTriangle norm;
+        IndexTriangle tex;
+        IndexTriangle colors;
+        IndexTriangle weights;
+        IndexTriangle joints;
+        bool hasPosition = false;
+        bool hasNormal = false;
+        bool hasTexcoord = false;
+        bool hasColor = false;
+        bool hasJoint = false;
+        bool hasWeight = false;
+    };
+
     if (removeBackfaces) {
+
+        // extract triangles
+        std::vector<MeshTriangle> Triangles;
+        MeshTriangle* prevTriangle = nullptr;
+        for (auto& n : rootNode->getAllNodes()) {
+            if (n->mesh) {
+                for (int f = 0; f < n->mesh->surfaces.size(); f++) {
+                    MeshSurface& face = n->mesh->surfaces[f];
+
+                    for (int i = 0; i < face.indexCount(); i += 3) {
+                        MeshTriangle tri;
+                        tri.node = n;
+                        tri.mat = face.material;
+
+                        if (face.hasPosition()) {
+                            tri.pos = IndexTriangle({face.positionIndices[i], face.positionIndices[i + 1], face.positionIndices[i + 2]});
+                            tri.hasPosition = true;
+                        }
+                        if (face.hasNormal()) {
+                            tri.norm = IndexTriangle({face.normalIndices[i], face.normalIndices[i + 1], face.normalIndices[i + 2]});
+                            tri.hasNormal = true;
+                        }
+                        if (face.hasTexcoord()) {
+                            tri.tex = IndexTriangle({face.texcoordIndices[i], face.texcoordIndices[i + 1], face.texcoordIndices[i + 2]});
+                            tri.hasTexcoord = true;
+                        }
+                        if (face.hasColor()) {
+                            tri.colors = IndexTriangle({face.colorIndices[i], face.colorIndices[i + 1], face.colorIndices[i + 2]});
+                            tri.hasColor = true;
+                        }
+                        if (face.hasJoint()) {
+                            tri.joints = IndexTriangle({face.jointIndices[i], face.jointIndices[i + 1], face.jointIndices[i + 2]});
+                            tri.hasJoint = true;
+                        }
+                        if (face.hasWeight()) {
+                            tri.weights = IndexTriangle({face.weightIndices[i], face.weightIndices[i + 1], face.weightIndices[i + 2]});
+                            tri.hasWeight = true;
+                        }
+                        Triangles.push_back(tri);
+                        prevTriangle = &Triangles.back();
+                    }
+                }
+            }
+        }
+
+        // sort triangles by vertex buffer
+        sort(Triangles.begin(), Triangles.end(), [](const MeshTriangle& t1, const MeshTriangle& t2) -> bool {
+            return t1.pos.max > t2.pos.max;
+        });
+
+        // put triangles back to their nodes
+        for (auto& n : rootNode->getAllNodes()) {
+            if (n->mesh) {
+                n->mesh->surfaces.clear();
+
+                std::map<uint32_t, MeshSurface> surfaces;
+                for (auto& triangle : Triangles) {
+                    if (triangle.node != n) continue;
+                    uint32_t texIndex = triangle.mat.textureIndex;
+                    MeshSurface* face;
+                    if (surfaces.find(texIndex) != surfaces.end()) {
+                        face = &surfaces[texIndex];
+                    } else {
+                        surfaces.insert({texIndex, MeshSurface()});
+                        face = &surfaces[texIndex];
+                        face->material = triangle.mat;
+                        face->type = PrimitiveType::Triangles;
+                    }
+
+                    if (triangle.hasPosition) {
+                        face->positionIndices.push_back(triangle.pos.i1);
+                        face->positionIndices.push_back(triangle.pos.i2);
+                        face->positionIndices.push_back(triangle.pos.i3);
+                    }
+
+                    if (triangle.hasNormal) {
+                        face->normalIndices.push_back(triangle.norm.i1);
+                        face->normalIndices.push_back(triangle.norm.i2);
+                        face->normalIndices.push_back(triangle.norm.i3);
+                    }
+
+                    if (triangle.hasTexcoord) {
+                        face->texcoordIndices.push_back(triangle.tex.i1);
+                        face->texcoordIndices.push_back(triangle.tex.i2);
+                        face->texcoordIndices.push_back(triangle.tex.i3);
+                    }
+
+                    if (triangle.hasColor) {
+                        face->colorIndices.push_back(triangle.colors.i1);
+                        face->colorIndices.push_back(triangle.colors.i2);
+                        face->colorIndices.push_back(triangle.colors.i3);
+                    }
+
+                    if (triangle.hasJoint) {
+                        face->jointIndices.push_back(triangle.joints.i1);
+                        face->jointIndices.push_back(triangle.joints.i2);
+                        face->jointIndices.push_back(triangle.joints.i3);
+                    }
+
+                    if (triangle.hasWeight) {
+                        face->weightIndices.push_back(triangle.weights.i1);
+                        face->weightIndices.push_back(triangle.weights.i2);
+                        face->weightIndices.push_back(triangle.weights.i3);
+                    }
+                }
+
+                // sperate backface from frontface (if available)
+                for(auto& [key,value] : surfaces) {
+                    uint32_t halfCount = value.indexCount() / 2;
+                    MeshSurface half1;
+                    half1.material = value.material;
+                    half1.type = value.type;
+                    MeshSurface half2;
+                    half2.material = value.material;
+                    half2.type = value.type;
+
+                    Vector3f center1;
+                    Vector3f center2;
+
+                    for(int i = 0; i < halfCount; i++) {
+                        if (value.hasPosition()) {
+                            half1.positionIndices.push_back(value.positionIndices[i]);
+                            half2.positionIndices.push_back(value.positionIndices[i + halfCount]);
+
+                            center1 += vertexBuffer.t_positions[value.positionIndices[i]];
+                            center2 += vertexBuffer.t_positions[value.positionIndices[i + halfCount]];
+                        }
+
+                        if (value.hasNormal()) {
+                            half1.normalIndices.push_back(value.normalIndices[i]);
+                            half2.normalIndices.push_back(value.normalIndices[i + halfCount]);
+                        }
+
+                        if (value.hasTexcoord()) {
+                            half1.texcoordIndices.push_back(value.texcoordIndices[i]);
+                            half2.texcoordIndices.push_back(value.texcoordIndices[i + halfCount]);
+                        }
+
+                        if (value.hasColor()) {
+                            half1.colorIndices.push_back(value.colorIndices[i]);
+                            half2.colorIndices.push_back(value.colorIndices[i + halfCount]);
+                        }
+
+                        if (value.hasJoint()) {
+                            half1.jointIndices.push_back(value.jointIndices[i]);
+                            half2.jointIndices.push_back(value.jointIndices[i + halfCount]);
+                        }
+
+                        if (value.hasWeight()) {
+                            half1.weightIndices.push_back(value.weightIndices[i]);
+                            half2.weightIndices.push_back(value.weightIndices[i + halfCount]);
+                        }
+                    }
+                    center1 /= halfCount;
+                    center2 /= halfCount;
+
+                    if (center1.distance(center2) < weldThreshold) {
+                        //n->mesh->surfaces.push_back(half1); // inner
+                        n->mesh->surfaces.push_back(half2); // outer
+                    } else {
+                        n->mesh->surfaces.push_back(value);
+                    }
+                }
+            }
+        }
+
+        // filter out used indices from buffer
+        std::set<uint32_t> usedIndices;
+        for (auto& n : rootNode->getAllNodes()) {
+            if (n->mesh) {
+                std::vector<MeshSurface> newSurfaces;
+                for (auto& face : n->mesh->surfaces) {
+                    for (int i = 0; i < face.indexCount(); i++) {
+                        uint32_t vertIndex = face.positionIndices[i];
+                        if (usedIndices.find(vertIndex) != usedIndices.end()) {
+                            continue;
+                        }
+                        usedIndices.insert(vertIndex);
+                    }
+                }
+            }
+        }
+
         // find backface vertices and mark them to be deleted
         std::vector<Vertex> uniqueVertices;
         std::set<uint32_t> deletedIndices;
-        for (int i = 0; i < vertexBuffer.vertexCount(); i++) {
+        for (auto i : usedIndices) {
             Vector3f p = vertexBuffer.t_positions[i];
             Vector3f n = vertexBuffer.t_normals[i];
             bool exists = false;
             for (auto& v : uniqueVertices) {
                 if (v.position.distance(p) < weldThreshold) {
-                    float angle = v.normal.angle(n);
-                    if (angle >= removeThreshold) {
+                    float dist = v.normal.distance(-n);
+                    if (dist < 0.000005f) {
                         deletedIndices.insert(i);
                         exists = true;
                     }
@@ -435,33 +665,50 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
     }
 
     if (weldSimilar) {
-        // weld similar vertices
-        std::vector<Vector3f> uniquePositions;
-        std::vector<Vector3f> uniqueNormals;
-        std::vector<Vector3f> uniqueTPositions;
-        std::vector<Vector3f> uniqueTNormals;
-        std::map<uint32_t, uint32_t> indexRemapping;
-        for (size_t v1 = 0; v1 < vertexBuffer.vertexCount(); v1++) {
-            bool weldDuplicate = false;
-            for (size_t v2 = 0; v2 < uniqueTPositions.size(); v2++) {
-                if (vertexBuffer.t_positions[v1].distance(uniqueTPositions[v2]) < weldThreshold) {
-                    indexRemapping.insert({v1, v2});
-                    weldDuplicate = true;
-                    break;
+
+        // filter out used indices from buffer
+        std::set<uint32_t> usedIndices;
+        for (auto& n : rootNode->getAllNodes()) {
+            if (n->mesh) {
+                for (auto& face : n->mesh->surfaces) {
+                    for (int i = 0; i < face.indexCount(); i++) {
+                        uint32_t vertIndex = face.positionIndices[i];
+                        if (usedIndices.find(vertIndex) == usedIndices.end()) {
+                            usedIndices.insert(vertIndex);
+                        }
+                    }
                 }
             }
-            if (!weldDuplicate) {
-                indexRemapping.insert({v1, uniquePositions.size()});
-                uniquePositions.push_back(vertexBuffer.positions[v1]);
-                uniqueNormals.push_back(vertexBuffer.normals[v1]);
-                uniqueTPositions.push_back(vertexBuffer.t_positions[v1]);
-                uniqueTNormals.push_back(vertexBuffer.t_normals[v1]);
-            }
         }
-        vertexBuffer.positions = uniquePositions;
-        vertexBuffer.normals = uniqueNormals;
-        vertexBuffer.t_positions = uniqueTPositions;
-        vertexBuffer.t_normals = uniqueTNormals;
+
+        // weld similar vertices
+        std::map<uint32_t, uint32_t> indexRemapping;
+        float dist;
+        for (auto& v1 : usedIndices) {
+            float nearest = weldThreshold;
+            int32_t nearestIndex = -1;
+            for (auto& v2 : usedIndices) {
+                if (v2 == v1) continue;
+                Vector3f& p1 = vertexBuffer.t_positions[v1];
+                Vector3f& p2 = vertexBuffer.t_positions[v2];
+                dist = p1.distance(p2);
+                if (dist < nearest) {
+                    nearest = dist;
+                    nearestIndex = v2;
+                }
+            }
+
+            if (nearestIndex >= 0) {
+                if (indexRemapping.find(static_cast<uint32_t>(nearestIndex)) == indexRemapping.end()) {
+                    indexRemapping.insert({v1, nearestIndex});
+                } else {
+                    indexRemapping.insert({v1, v1});
+                }
+            } else {
+                indexRemapping.insert({v1, v1});
+            }
+
+        }
         for (auto& n : rootNode->getAllNodes()) {
             if (n->mesh) {
                 for (auto& face : n->mesh->surfaces) {
@@ -485,24 +732,18 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
 
                         if (face.hasPosition()) {
                             uint32_t posIndex = face.positionIndices[i];
+                            uint32_t normIndex = face.normalIndices[i];
                             if (vertexIndices.find(posIndex) == vertexIndices.end()) {
                                 face.positionIndices[i] = newBuffer.positions.size();
                                 newBuffer.positions.push_back(vertexBuffer.positions[posIndex]);
                                 newBuffer.t_positions.push_back(vertexBuffer.t_positions[posIndex]);
                                 vertexIndices.insert({posIndex, face.positionIndices[i]});
-                            } else {
-                                face.positionIndices[i] = vertexIndices[posIndex];
-                            }
-                        }
-
-                        if (face.hasNormal()) {
-                            uint32_t normIndex = face.normalIndices[i];
-                            if (vertexIndices.find(normIndex) == vertexIndices.end()) {
                                 face.normalIndices[i] = newBuffer.normals.size();
                                 newBuffer.normals.push_back(vertexBuffer.normals[normIndex]);
                                 newBuffer.t_normals.push_back(vertexBuffer.t_normals[normIndex]);
                                 vertexIndices.insert({normIndex, face.normalIndices[i]});
                             } else {
+                                face.positionIndices[i] = vertexIndices[posIndex];
                                 face.normalIndices[i] = vertexIndices[normIndex];
                             }
                         }

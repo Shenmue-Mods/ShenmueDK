@@ -38,7 +38,7 @@ struct Vector3f {
 
     float operator[](int index) const;
 
-    Vector3f operator-();
+    Vector3f operator-() const;
 
     Vector3f operator+(float value) const;
     Vector3f operator+(const Vector3f& rhs) const;

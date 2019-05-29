@@ -132,13 +132,16 @@ struct Vertex {
 
 struct Triangle {
     Triangle();
+    Triangle(Vector3f _p1, Vector3f _p2, Vector3f _p3);
     Triangle(Vector3f _p1, Vector3f _p2, Vector3f _p3,
              Vector3f _n1, Vector3f _n2, Vector3f _n3);
 
+    const Vector3f& center();
     Vector3f faceNormal();
     static Vector3f faceNormal(const Vector3f& _p1, const Vector3f& _p2, const Vector3f& _p3);
     static Vector3f faceCenter(const Vector3f& _p1, const Vector3f& _p2, const Vector3f& _p3);
     static float faceArea(const Vector3f& _p1, const Vector3f& _p2, const Vector3f& _p3);
+    static float difference(const Triangle& t1, const Triangle& t2);
 
 private:
     AABoundingBox bounds;
@@ -148,7 +151,8 @@ private:
     Vector3f n1;
     Vector3f n2;
     Vector3f n3;
-    Vector3f center;
+    Vector3f m_center;
+    Vector3f m_faceNormal;
 };
 
 
@@ -273,7 +277,7 @@ struct Model {
     std::vector<Texture> textures;
     VertexBuffer vertexBuffer;
 
-    void cleanMesh(bool removeBackfaces = true, bool weldSimilar = true, bool removeUnused = true,
+    void cleanMesh(bool removeBackfaces = true, bool weldSimilar = false, bool removeUnused = true,
                    float weldThreshold = 0.000005f, float backfaceAngle = 270.0f);
 };
 

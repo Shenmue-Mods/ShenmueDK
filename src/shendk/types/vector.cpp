@@ -28,7 +28,7 @@ Vector3f::Vector3f(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 
 std::string Vector3f::str() {
     std::stringstream ss;
-    ss << "{" << x << ", " << y << ", " << z << "}";
+    ss << "{" << std::to_string(x) << ", " << std::to_string(y) << ", " << std::to_string(z) << "}";
     return ss.str();
 }
 
@@ -45,7 +45,7 @@ float Vector3f::operator[](int index) const {
     }
 }
 
-Vector3f Vector3f::operator-() {
+Vector3f Vector3f::operator-() const{
     return Vector3f(-x, -y, -z);
 }
 
