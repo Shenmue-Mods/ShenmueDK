@@ -15,6 +15,12 @@ GZ::GZ(std::istream& stream) { read(stream); }
 GZ::~GZ() {}
 
 bool GZ::testGzip(std::istream& stream) {
+
+    uint16_t signature;
+    stream.read(reinterpret_cast<char*>(&signature), 2);
+    stream.seekg(0, std::ios::beg);
+    if (signature != 35615) return false;
+
     uint8_t* buffer = new uint8_t[2];
     stream.read(reinterpret_cast<char*>(buffer), 2);
     stream.seekg(0, std::ios::beg);
