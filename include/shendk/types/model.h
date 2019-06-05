@@ -29,6 +29,7 @@ enum class BoneID : uint8_t {
     RightUpperArm = 5,
     RightLowerArm = 6,
     RightWrist = 7,
+    RightRiggedHand = 8,
     RightHand = 191,
     RightHandIndexUpper = 28,
     RightHandIndexLower = 29,
@@ -39,6 +40,7 @@ enum class BoneID : uint8_t {
     LeftUpperArm = 10,
     LeftLowerArm = 11,
     LeftWrist = 12,
+    LeftRiggedHand = 13,
     LeftHand = 190,
     LeftHandIndexUpper = 43,
     LeftHandIndexLower = 44,
@@ -166,6 +168,7 @@ struct VertexBuffer {
     std::vector<Vector4f> colors;
     std::vector<float> weights;
     std::vector<BoneID> joints;
+    std::vector<uint32_t> nodes;
 
     /** @brief transformed positions */
     std::vector<Vector3f> t_positions;
@@ -192,6 +195,7 @@ struct MeshSurface {
     std::vector<uint32_t> colorIndices;
     std::vector<uint32_t> weightIndices;
     std::vector<uint32_t> jointIndices;
+    std::vector<uint32_t> nodeIndices;
 
     int indexCount() { return positionIndices.size(); }
     bool hasPosition() { return positionIndices.size() > 0; }
@@ -200,6 +204,7 @@ struct MeshSurface {
     bool hasColor() { return colorIndices.size() > 0; }
     bool hasWeight() { return weightIndices.size() > 0; }
     bool hasJoint() { return jointIndices.size() > 0; }
+    bool hasNode() { return nodeIndices.size() > 0; }
 
     int lengthBytes() { return stride() * indexCount(); }
 
@@ -251,17 +256,20 @@ struct ModelNode : std::enable_shared_from_this<ModelNode> {
     std::vector<ModelNode*> getAllNodes(bool includeSibling = true, bool includeChildren = true);
     Matrix4f getTransformMatrixSelf();
     Matrix4f getTransformMatrix();
+    Matrix4f getCenteredTransformMatrixSelf();
+    Matrix4f getCenteredTransformMatrix();
 
     BoneID getBoneID();
 
     Model* model;
+    uint32_t index = 0;
 
-    uint32_t id;
+    uint32_t id = 0;
     Vector3f position;
     Vector3f rotation;
     Vector3f scale;
-    Vector3f center;
-    float radius;
+    Vector3f center = Vector3f::zero();
+    float radius = 0.0f;
 
     ModelNode* child = nullptr;
     ModelNode* nextSibling = nullptr;
@@ -276,6 +284,8 @@ struct Model {
     std::shared_ptr<ModelNode> rootNode;
     std::vector<Texture> textures;
     VertexBuffer vertexBuffer;
+
+    uint32_t nodeCount = 0;
 
     void cleanMesh(bool removeBackfaces = true, bool weldSimilar = false, bool removeUnused = true,
                    float weldThreshold = 0.000005f, float backfaceAngle = 270.0f);

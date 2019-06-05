@@ -167,6 +167,7 @@ void InStrip::_read(std::istream& stream) {
             face.normalIndices.push_back(index);
             face.weightIndices.push_back(index);
             face.jointIndices.push_back(index);
+            face.nodeIndices.push_back(index);
 
             if (uv) {
                 uint16_t u,v;

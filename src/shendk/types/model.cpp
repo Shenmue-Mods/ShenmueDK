@@ -266,6 +266,24 @@ void MeshSurface::convertToTriangles() {
         }
         jointIndices = newIndices;
     }
+    if (hasNode()){
+        std::vector<uint32_t> newIndices;
+        for (size_t i = 0; i < static_cast<size_t>(count - 2); i++) {
+            uint32_t index1 = nodeIndices[i];
+            uint32_t index2 = nodeIndices[i + 1];
+            uint32_t index3 = nodeIndices[i + 2];
+            if ((i & 1) == 1) {
+                newIndices.push_back(index1);
+                newIndices.push_back(index2);
+                newIndices.push_back(index3);
+            } else {
+                newIndices.push_back(index1);
+                newIndices.push_back(index3);
+                newIndices.push_back(index2);
+            }
+        }
+        nodeIndices = newIndices;
+    }
     type = PrimitiveType::Triangles;
 }
 
@@ -303,6 +321,8 @@ uint32_t NodeMesh::getIndex(int32_t index) {
 ModelNode::ModelNode(Model* _model)
     : model(_model)
 {
+    index = model->nodeCount;
+    model->nodeCount++;
 }
 
 ModelNode::~ModelNode() {
@@ -342,6 +362,25 @@ Matrix4f ModelNode::getTransformMatrix() {
     return getTransformMatrixSelf() * matrix;
 }
 
+Matrix4f ModelNode::getCenteredTransformMatrixSelf() {
+    Matrix4f rotationMatrixX = Matrix4f::createFromAxisAngle(Vector3f::uintX(), degreesToRadians(rotation.x));
+    Matrix4f rotationMatrixY = Matrix4f::createFromAxisAngle(Vector3f::uintY(), degreesToRadians(rotation.y));
+    Matrix4f rotationMatrixZ = Matrix4f::createFromAxisAngle(Vector3f::uintZ(), degreesToRadians(rotation.z));
+    Matrix4f scaleMatrix = Matrix4f::createScale(scale.x, scale.y, scale.z);
+    Matrix4f translateMatrix = Matrix4f::createTranslation(position.x, position.y, position.z);
+    Matrix4f centerMatrix = Matrix4f::createTranslation(center.x, center.y, center.z);
+    return scaleMatrix * rotationMatrixX * rotationMatrixY * rotationMatrixZ * translateMatrix * centerMatrix;
+}
+
+Matrix4f ModelNode::getCenteredTransformMatrix() {
+    Matrix4f matrix = Matrix4f::identity();
+    Matrix4f centerMatrix = Matrix4f::createTranslation(center.x, center.y, center.z);
+    if (parent) {
+        matrix = parent->getTransformMatrix();
+    }
+    return centerMatrix * getTransformMatrixSelf() * matrix;
+}
+
 BoneID ModelNode::getBoneID() {
     if (mesh) {
         return static_cast<BoneID>(id & 0xFF);
@@ -377,12 +416,14 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
         IndexTriangle colors;
         IndexTriangle weights;
         IndexTriangle joints;
+        IndexTriangle nodes;
         bool hasPosition = false;
         bool hasNormal = false;
         bool hasTexcoord = false;
         bool hasColor = false;
         bool hasJoint = false;
         bool hasWeight = false;
+        bool hasNode = false;
     };
 
     if (removeBackfaces) {
@@ -423,6 +464,10 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
                         if (face.hasWeight()) {
                             tri.weights = IndexTriangle({face.weightIndices[i], face.weightIndices[i + 1], face.weightIndices[i + 2]});
                             tri.hasWeight = true;
+                        }
+                        if (face.hasNode()) {
+                            tri.nodes = IndexTriangle({face.nodeIndices[i], face.nodeIndices[i + 1], face.nodeIndices[i + 2]});
+                            tri.hasNode = true;
                         }
                         Triangles.push_back(tri);
                         prevTriangle = &Triangles.back();
@@ -490,6 +535,12 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
                         face->weightIndices.push_back(triangle.weights.i2);
                         face->weightIndices.push_back(triangle.weights.i3);
                     }
+
+                    if (triangle.hasNode) {
+                        face->nodeIndices.push_back(triangle.nodes.i1);
+                        face->nodeIndices.push_back(triangle.nodes.i2);
+                        face->nodeIndices.push_back(triangle.nodes.i3);
+                    }
                 }
 
                 // sperate backface from frontface (if available)
@@ -537,6 +588,11 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
                         if (value.hasWeight()) {
                             half1.weightIndices.push_back(value.weightIndices[i]);
                             half2.weightIndices.push_back(value.weightIndices[i + halfCount]);
+                        }
+
+                        if (value.hasNode()) {
+                            half1.nodeIndices.push_back(value.nodeIndices[i]);
+                            half2.nodeIndices.push_back(value.nodeIndices[i + halfCount]);
                         }
                     }
                     center1 /= halfCount;
@@ -648,6 +704,12 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
                                 newFace.weightIndices.push_back(face.weightIndices[i + 1]);
                                 newFace.weightIndices.push_back(face.weightIndices[i + 2]);
                             }
+
+                            if (face.hasNode()) {
+                                newFace.nodeIndices.push_back(face.nodeIndices[i]);
+                                newFace.nodeIndices.push_back(face.nodeIndices[i + 1]);
+                                newFace.nodeIndices.push_back(face.nodeIndices[i + 2]);
+                            }
                         }
                     }
                     if (newFace.indexCount() > 0) {
@@ -715,6 +777,9 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
                     for (int i = 0; i < face.indexCount(); i++) {
                         face.positionIndices[i] = indexRemapping[face.positionIndices[i]];
                         face.normalIndices[i] = indexRemapping[face.normalIndices[i]];
+                        face.jointIndices[i] = indexRemapping[face.jointIndices[i]];
+                        face.weightIndices[i] = indexRemapping[face.weightIndices[i]];
+                        face.nodeIndices[i] = indexRemapping[face.nodeIndices[i]];
                     }
                 }
             }
@@ -732,19 +797,31 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
 
                         if (face.hasPosition()) {
                             uint32_t posIndex = face.positionIndices[i];
-                            uint32_t normIndex = face.normalIndices[i];
                             if (vertexIndices.find(posIndex) == vertexIndices.end()) {
                                 face.positionIndices[i] = newBuffer.positions.size();
                                 newBuffer.positions.push_back(vertexBuffer.positions[posIndex]);
                                 newBuffer.t_positions.push_back(vertexBuffer.t_positions[posIndex]);
-                                vertexIndices.insert({posIndex, face.positionIndices[i]});
+
                                 face.normalIndices[i] = newBuffer.normals.size();
-                                newBuffer.normals.push_back(vertexBuffer.normals[normIndex]);
-                                newBuffer.t_normals.push_back(vertexBuffer.t_normals[normIndex]);
-                                vertexIndices.insert({normIndex, face.normalIndices[i]});
+                                newBuffer.normals.push_back(vertexBuffer.normals[posIndex]);
+                                newBuffer.t_normals.push_back(vertexBuffer.t_normals[posIndex]);
+
+                                face.jointIndices[i] = newBuffer.joints.size();
+                                newBuffer.joints.push_back(vertexBuffer.joints[posIndex]);
+
+                                face.weightIndices[i] = newBuffer.weights.size();
+                                newBuffer.weights.push_back(vertexBuffer.weights[posIndex]);
+
+                                face.nodeIndices[i] = newBuffer.nodes.size();
+                                newBuffer.nodes.push_back(vertexBuffer.nodes[posIndex]);
+
+                                vertexIndices.insert({posIndex, face.positionIndices[i]});
                             } else {
                                 face.positionIndices[i] = vertexIndices[posIndex];
-                                face.normalIndices[i] = vertexIndices[normIndex];
+                                face.normalIndices[i] = vertexIndices[posIndex];
+                                face.jointIndices[i] = vertexIndices[posIndex];
+                                face.weightIndices[i] = vertexIndices[posIndex];
+                                face.nodeIndices[i] = vertexIndices[posIndex];
                             }
                         }
 
@@ -758,18 +835,6 @@ void Model::cleanMesh(bool removeBackfaces, bool weldSimilar, bool removeUnused,
                             uint32_t colIndex = face.colorIndices[i];
                             face.colorIndices[i] = newBuffer.colors.size();
                             newBuffer.colors.push_back(vertexBuffer.colors[colIndex]);
-                        }
-
-                        if (face.hasWeight()) {
-                            uint32_t weightIndex = face.weightIndices[i];
-                            face.weightIndices[i] = newBuffer.weights.size();
-                            newBuffer.weights.push_back(vertexBuffer.weights[weightIndex]);
-                        }
-
-                        if (face.hasJoint()) {
-                            uint32_t jointIndex = face.jointIndices[i];
-                            face.jointIndices[i] = newBuffer.joints.size();
-                            newBuffer.joints.push_back(vertexBuffer.joints[jointIndex]);
                         }
                     }
                 }

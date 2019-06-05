@@ -39,6 +39,7 @@ void MT5Mesh::read(std::istream& stream) {
         node->model->vertexBuffer.t_normals.push_back(t_norm);
         node->model->vertexBuffer.weights.push_back(1.0f);
         node->model->vertexBuffer.joints.push_back(node->getBoneID());
+        node->model->vertexBuffer.nodes.push_back(node->index);
     }
 
     int64_t instructionOffset;
