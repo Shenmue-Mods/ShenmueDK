@@ -6,6 +6,7 @@
 #include "tinyxml2.h"
 
 #include "shendk/files/image/png.h"
+#include "shendk/types/quaternion.h"
 
 using namespace tinyxml2;
 
@@ -66,12 +67,14 @@ void DAE::_write(std::ostream& stream) {
         XMLElement* library_effects = doc.NewElement("library_effects");
 
         for (auto& tex : model.textures) {
+
             std::string imageName = "tex_" + tex.textureID.hexStr() + ".png";
             std::string imageId = "tex_" + tex.textureID.hexStr() + "_png";
             std::string imagePath = fs::path(filepath).parent_path().append(imageName).string();
-            PNG png(tex.image);
-            png.write(imagePath);
-
+            if (tex.image.get() != nullptr) {
+                PNG png(tex.image);
+                png.write(imagePath);
+            }
             // effect
             std::string matName = "mat_" + tex.textureID.hexStr();
             std::string effectId = matName + "-effect";
@@ -269,13 +272,16 @@ void DAE::_write(std::ostream& stream) {
         if (node->mesh) {
             for (auto& surface : node->mesh->surfaces) {
                 size_t textureIndex = surface.material.textureIndex;
+
                 if (textureIndex >= model.textures.size()) {
                     textureIndex = 0;
                 }
-                std::string mat = "mat_" + model.textures[textureIndex].textureID.hexStr() + "-material";
 
                 XMLElement* triangles = doc.NewElement("triangles");
-                triangles->SetAttribute("material", mat.c_str());
+                if (model.textures.size() > 0) {
+                    std::string mat = "mat_" + model.textures[textureIndex].textureID.hexStr() + "-material";
+                    triangles->SetAttribute("material", mat.c_str());
+                }
                 triangles->SetAttribute("count", surface.indexCount() / 3);
                 XMLElement* inputVertex = doc.NewElement("input");
                 inputVertex->SetAttribute("semantic", "VERTEX");
@@ -319,16 +325,193 @@ void DAE::_write(std::ostream& stream) {
     visual_scene->SetAttribute("id", "Scene");
     visual_scene->SetAttribute("name", "Scene");
 
+    // root node
+    XMLElement* rootNode = doc.NewElement("node");
+    rootNode->SetAttribute("id", "Root");
+    rootNode->SetAttribute("name", "Root");
+    rootNode->SetAttribute("type", "NODE");
+    XMLElement* rootMatrix = doc.NewElement("matrix");
+    rootMatrix->SetAttribute("sid", "transform");
+    rootMatrix->SetText("1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1");
+    rootNode->InsertEndChild(rootMatrix);
+
+    // rig nodes
+    XMLElement* armatureNode = doc.NewElement("node");
+    armatureNode->SetAttribute("id", "Armature");
+    armatureNode->SetAttribute("name", "Armature");
+    armatureNode->SetAttribute("type", "NODE");
+
+    XMLElement* armatureMatrix = doc.NewElement("matrix");
+    armatureMatrix->SetAttribute("sid", "transform");
+    armatureMatrix->SetText("1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1");
+    armatureNode->InsertEndChild(armatureMatrix);
+
+    std::map<uint32_t, std::string> boneNames;
+    recursiveSkeleton(&doc, armatureNode, model.rootNode.get(), boneNames);
+    rootNode->InsertEndChild(armatureNode);
+
+    // rig controller
+    XMLElement* library_controllers = doc.NewElement("library_controllers");
+
+    XMLElement* controller = doc.NewElement("controller");
+    controller->SetAttribute("id", "Armature_Proxy-skin");
+    controller->SetAttribute("name", "Armature");
+    XMLElement* controller_skin = doc.NewElement("skin");
+    controller_skin->SetAttribute("source", ("#" + meshId).c_str());
+
+    XMLElement* bind_shape_matrix = doc.NewElement("bind_shape_matrix");
+    bind_shape_matrix->SetText("1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1");
+    controller_skin->InsertEndChild(bind_shape_matrix);
+
+    XMLElement* source_joints = doc.NewElement("source");
+    source_joints->SetAttribute("id", "Armature_Proxy-skin-joints");
+    XMLElement* source_joints_array = doc.NewElement("Name_array");
+    source_joints_array->SetAttribute("id", "Armature_Proxy-skin-joints-array");
+    source_joints_array->SetAttribute("count", std::to_string(model.nodeCount).c_str());
+    ss.str(std::string());
+    for (auto& [key, value] : boneNames) {
+        ss << value << " ";
+    }
+    source_joints_array->SetText(ss.str().c_str());
+    source_joints->InsertEndChild(source_joints_array);
+    XMLElement* source_joints_technique = doc.NewElement("technique_common");
+    XMLElement* source_joints_accessor = doc.NewElement("accessor");
+    source_joints_accessor->SetAttribute("source", "#Armature_Proxy-skin-joints-array");
+    source_joints_accessor->SetAttribute("count", model.nodeCount);
+    source_joints_accessor->SetAttribute("stride", "1");
+    XMLElement* source_joints_param = doc.NewElement("param");
+    source_joints_param->SetAttribute("name", "JOINT");
+    source_joints_param->SetAttribute("type", "name");
+    source_joints_accessor->InsertEndChild(source_joints_param);
+    source_joints_technique->InsertEndChild(source_joints_accessor);
+    source_joints->InsertEndChild(source_joints_technique);
+    controller_skin->InsertEndChild(source_joints);
+
+    XMLElement* source_bind_pose = doc.NewElement("source");
+    source_bind_pose->SetAttribute("id", "Armature_Proxy-skin-bind_poses");
+    XMLElement* source_bind_array = doc.NewElement("float_array");
+    source_bind_array->SetAttribute("id", "Armature_Proxy-skin-bind_poses-array");
+    source_bind_array->SetAttribute("count", model.nodeCount * 16);
+    ss.str(std::string());
+    for (auto& n : model.rootNode->getAllNodes()) {
+        Matrix4f mat = n->getTransformMatrix().invert();
+        ss << matrixText(mat) << " ";
+    }
+    source_bind_array->SetText(ss.str().c_str());
+    source_bind_pose->InsertEndChild(source_bind_array);
+    XMLElement* source_bind_technique = doc.NewElement("technique_common");
+    XMLElement* source_bind_accessor = doc.NewElement("accessor");
+    source_bind_accessor->SetAttribute("source", "#Armature_Proxy-skin-bind_poses-array");
+    source_bind_accessor->SetAttribute("count", model.nodeCount);
+    source_bind_accessor->SetAttribute("stride", "16");
+    XMLElement* source_bind_param = doc.NewElement("param");
+    source_bind_param->SetAttribute("name", "TRANSFORM");
+    source_bind_param->SetAttribute("type", "float4x4");
+    source_bind_accessor->InsertEndChild(source_bind_param);
+    source_bind_technique->InsertEndChild(source_bind_accessor);
+    source_bind_pose->InsertEndChild(source_bind_technique);
+    controller_skin->InsertEndChild(source_bind_pose);
+
+    XMLElement* source_weights = doc.NewElement("source");
+    source_weights->SetAttribute("id", "Armature_Proxy-skin-weights");
+    XMLElement* source_weights_array = doc.NewElement("float_array");
+    source_weights_array->SetAttribute("id", "Armature_Proxy-skin-weights-array");
+    source_weights_array->SetAttribute("count", model.vertexBuffer.vertexCount());
+    ss.str(std::string());
+    for (auto& weight : model.vertexBuffer.weights) {
+        ss << std::to_string(weight) << " ";
+    }
+    source_weights_array->SetText(ss.str().c_str());
+    source_weights->InsertEndChild(source_weights_array);
+    XMLElement* source_weights_technique = doc.NewElement("technique_common");
+    XMLElement* source_weights_accessor = doc.NewElement("accessor");
+    source_weights_accessor->SetAttribute("source", "#Armature_Proxy-skin-weights-array");
+    source_weights_accessor->SetAttribute("count", model.vertexBuffer.vertexCount());
+    source_weights_accessor->SetAttribute("stride", "1");
+    XMLElement* source_weights_param = doc.NewElement("param");
+    source_weights_param->SetAttribute("name", "WEIGHT");
+    source_weights_param->SetAttribute("type", "float");
+    source_weights_accessor->InsertEndChild(source_weights_param);
+    source_weights_technique->InsertEndChild(source_weights_accessor);
+    source_weights->InsertEndChild(source_weights_technique);
+    controller_skin->InsertEndChild(source_weights);
+
+    XMLElement* skin_joints = doc.NewElement("joints");
+    XMLElement* skin_joints_input_joint = doc.NewElement("input");
+    skin_joints_input_joint->SetAttribute("semantic", "JOINT");
+    skin_joints_input_joint->SetAttribute("source", "#Armature_Proxy-skin-joints");
+    skin_joints->InsertEndChild(skin_joints_input_joint);
+    XMLElement* skin_joints_input_bind = doc.NewElement("input");
+    skin_joints_input_bind->SetAttribute("semantic", "INV_BIND_MATRIX");
+    skin_joints_input_bind->SetAttribute("source", "#Armature_Proxy-skin-bind_poses");
+    skin_joints->InsertEndChild(skin_joints_input_bind);
+    controller_skin->InsertEndChild(skin_joints);
+
+    XMLElement* skin_weights = doc.NewElement("vertex_weights");
+    skin_weights->SetAttribute("count", model.vertexBuffer.vertexCount());
+    XMLElement* skin_input_joints = doc.NewElement("input");
+    skin_input_joints->SetAttribute("semantic", "JOINT");
+    skin_input_joints->SetAttribute("source", "#Armature_Proxy-skin-joints");
+    skin_input_joints->SetAttribute("offset", "0");
+    skin_weights->InsertEndChild(skin_input_joints);
+    XMLElement* skin_input_weights = doc.NewElement("input");
+    skin_input_weights->SetAttribute("semantic", "WEIGHT");
+    skin_input_weights->SetAttribute("source", "#Armature_Proxy-skin-weights");
+    skin_input_weights->SetAttribute("offset", "1");
+    skin_weights->InsertEndChild(skin_input_weights);
+    XMLElement* skin_count_array = doc.NewElement("vcount");
+    ss.str(std::string());
+    for (int i = 0; i < model.vertexBuffer.weights.size(); i++) {
+        ss << std::to_string(1) << " ";
+    }
+    skin_count_array->SetText(ss.str().c_str());
+    skin_weights->InsertEndChild(skin_count_array);
+    XMLElement* skin_weights_array = doc.NewElement("v");
+    ss.str(std::string());
+    for (int i = 0; i < model.vertexBuffer.weights.size(); i++) {
+        ss << std::to_string(model.vertexBuffer.nodes[i]) << " " << std::to_string(i) << " ";
+    }
+    skin_weights_array->SetText(ss.str().c_str());
+    skin_weights->InsertEndChild(skin_weights_array);
+    controller_skin->InsertEndChild(skin_weights);
+
+    controller->InsertEndChild(controller_skin);
+    library_controllers->InsertEndChild(controller);
+    root->InsertEndChild(library_controllers);
+
     // geometry node
     XMLElement* modelNode = doc.NewElement("node");
     modelNode->SetAttribute("id", meshName.c_str());
     modelNode->SetAttribute("name", meshName.c_str());
     modelNode->SetAttribute("type", "NODE");
-    XMLElement* modelMatrix = doc.NewElement("matrix");
+
+    XMLElement* modelTranslate = doc.NewElement("translate");
+    modelTranslate->SetAttribute("sid", "location");
+    modelTranslate->SetText("0 0 0");
+    XMLElement* modelRotateX = doc.NewElement("rotate");
+    modelRotateX->SetAttribute("sid", "rotationZ");
+    modelRotateX->SetText("0 0 1 0");
+    XMLElement* modelRotateY = doc.NewElement("rotate");
+    modelRotateY->SetAttribute("sid", "rotationY");
+    modelRotateY->SetText("0 1 0 0");
+    XMLElement* modelRotateZ = doc.NewElement("rotate");
+    modelRotateZ->SetAttribute("sid", "rotationX");
+    modelRotateZ->SetText("1 0 0 0");
+    XMLElement* modelScale = doc.NewElement("scale");
+    modelScale->SetAttribute("sid", "scale");
+    modelScale->SetText("1 1 1");
+    modelNode->InsertEndChild(modelTranslate);
+    modelNode->InsertEndChild(modelRotateX);
+    modelNode->InsertEndChild(modelRotateY);
+    modelNode->InsertEndChild(modelRotateZ);
+    modelNode->InsertEndChild(modelScale);
+
+    /*XMLElement* modelMatrix = doc.NewElement("matrix");
     modelMatrix->SetAttribute("sid", "transform");
     modelMatrix->SetText("1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1");
-    modelNode->InsertEndChild(modelMatrix);
-    XMLElement* instance_geometry = doc.NewElement("instance_geometry");
+    modelNode->InsertEndChild(modelMatrix);*/
+
+    /*XMLElement* instance_geometry = doc.NewElement("instance_geometry");
     instance_geometry->SetAttribute("url", ("#" + meshId).c_str());
     instance_geometry->SetAttribute("name", meshName.c_str());
     XMLElement* bind_material = doc.NewElement("bind_material");
@@ -347,13 +530,33 @@ void DAE::_write(std::ostream& stream) {
     }
     bind_material->InsertEndChild(technique_common);
     instance_geometry->InsertEndChild(bind_material);
-    modelNode->InsertEndChild(instance_geometry);
-    visual_scene->InsertEndChild(modelNode);
+    modelNode->InsertEndChild(instance_geometry);*/
 
-    // rig nodes
-    XMLElement* library_controllers = doc.NewElement("library_controllers");
-    root->InsertEndChild(library_controllers);
+    XMLElement* instance_controller = doc.NewElement("instance_controller");
+    instance_controller->SetAttribute("url", "#Armature_Proxy-skin");
+    XMLElement* skeleton = doc.NewElement("skeleton");
+    skeleton->SetText(("#Armature_" + boneNames[0]).c_str());
+    instance_controller->InsertEndChild(skeleton);
+    XMLElement* bind_material = doc.NewElement("bind_material");
+    XMLElement* technique_common = doc.NewElement("technique_common");
+    for (auto& tex : model.textures) {
+        std::string mat = "mat_" + tex.textureID.hexStr() + "-material";
+        XMLElement* instance_material = doc.NewElement("instance_material");
+        instance_material->SetAttribute("symbol", mat.c_str());
+        instance_material->SetAttribute("target", ("#" + mat).c_str());
+        XMLElement* bind_vertex_input = doc.NewElement("bind_vertex_input");
+        bind_vertex_input->SetAttribute("semantic", "UVMap");
+        bind_vertex_input->SetAttribute("input_semantic", "TEXCOORD");
+        bind_vertex_input->SetAttribute("input_set", "0");
+        instance_material->InsertEndChild(bind_vertex_input);
+        technique_common->InsertEndChild(instance_material);
+    }
+    bind_material->InsertEndChild(technique_common);
+    instance_controller->InsertEndChild(bind_material);
+    modelNode->InsertEndChild(instance_controller);
+    armatureNode->InsertEndChild(modelNode);
 
+    visual_scene->InsertEndChild(rootNode);
 
     library_visual_scenes->InsertEndChild(visual_scene);
     root->InsertEndChild(library_visual_scenes);
@@ -380,6 +583,91 @@ void DAE::_write(std::ostream& stream) {
 
 bool DAE::_isValid(uint32_t signature){
     return false;
+}
+
+void DAE::recursiveSkeleton(tinyxml2::XMLDocument* doc, tinyxml2::XMLElement* parent, ModelNode* node, std::map<uint32_t, std::string>& boneNames) {
+
+    BoneID boneID = node->getBoneID();
+    XMLElement* jointNode = doc->NewElement("node");
+    std::string boneName = "Node_" + std::to_string(node->index) + "_" + BoneName[boneID];
+    boneNames.insert({node->index, boneName});
+    jointNode->SetAttribute("id", ("Armature_" + boneName).c_str());
+    jointNode->SetAttribute("name", boneName.c_str());
+    jointNode->SetAttribute("sid", boneName.c_str());
+    jointNode->SetAttribute("type", "JOINT");
+
+    XMLElement* matrix = doc->NewElement("matrix");
+    matrix->SetAttribute("sid", "transform");
+    matrix->SetText(matrixText(node->getTransformMatrix()).c_str());
+    jointNode->InsertEndChild(matrix);
+
+    /*XMLElement* translate = doc->NewElement("translate");
+    translate->SetAttribute("sid", "location");
+    translate->SetText(vector3Text(node->position).c_str());
+    jointNode->InsertEndChild(translate);
+
+    XMLElement* rotZ = doc->NewElement("rotate");
+    rotZ->SetAttribute("sid", "rotationZ");
+    rotZ->SetText(vector4Text(Vector4f(0.0f, 0.0f, 1.0f, node->rotation.z)).c_str());
+    jointNode->InsertEndChild(rotZ);
+
+    XMLElement* rotY = doc->NewElement("rotate");
+    rotY->SetAttribute("sid", "rotationY");
+    rotY->SetText(vector4Text(Vector4f(0.0f, 1.0f, 0.0f, node->rotation.y)).c_str());
+    jointNode->InsertEndChild(rotY);
+
+    XMLElement* rotX = doc->NewElement("rotate");
+    rotX->SetAttribute("sid", "rotationX");
+    rotX->SetText(vector4Text(Vector4f(1.0f, 0.0f, 0.0f, node->rotation.x)).c_str());
+    jointNode->InsertEndChild(rotX);
+
+    XMLElement* scale = doc->NewElement("scale");
+    scale->SetAttribute("sid", "scale");
+    scale->SetText(vector3Text(node->scale).c_str());
+    jointNode->InsertEndChild(scale);*/
+
+    if (node->child) {
+        recursiveSkeleton(doc, jointNode, node->child, boneNames);
+    }
+
+    if (node->nextSibling) {
+        recursiveSkeleton(doc, parent, node->nextSibling, boneNames);
+    }
+
+    parent->InsertEndChild(jointNode);
+}
+
+std::string DAE::vector2Text(Vector2f vector) {
+    std::stringstream ss;
+    ss << std::to_string(vector.x) << " "
+       << std::to_string(vector.y);
+    return ss.str();
+}
+
+std::string DAE::vector3Text(Vector3f vector) {
+    std::stringstream ss;
+    ss << std::to_string(vector.x) << " "
+       << std::to_string(vector.y) << " "
+       << std::to_string(vector.z);
+    return ss.str();
+}
+
+std::string DAE::vector4Text(Vector4f vector) {
+    std::stringstream ss;
+    ss << std::to_string(vector.x) << " "
+       << std::to_string(vector.y) << " "
+       << std::to_string(vector.z) << " "
+       << std::to_string(vector.w);
+    return ss.str();
+}
+
+std::string DAE::matrixText(Matrix4f matrix) {
+    std::stringstream ss;
+    ss << vector4Text(matrix.col0()) << " "
+       << vector4Text(matrix.col1()) << " "
+       << vector4Text(matrix.col2()) << " "
+       << vector4Text(matrix.col3());
+    return ss.str();
 }
 
 }
