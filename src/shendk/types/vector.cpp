@@ -26,7 +26,7 @@ Vector3f::Vector3f(float value) : x(value), y(value), z(value) {}
 Vector3f::Vector3f(float _x, float _y) : x(_x), y(_y), z(0.0f) {}
 Vector3f::Vector3f(float _x, float _y, float _z) : x(_x), y(_y), z(_z) {}
 
-std::string Vector3f::str() {
+std::string Vector3f::str() const {
     std::stringstream ss;
     ss << "{" << std::to_string(x) << ", " << std::to_string(y) << ", " << std::to_string(z) << "}";
     return ss.str();
@@ -125,11 +125,11 @@ Vector3f Vector3f::operator/=(const Vector3f& rhs) {
     return *this;
 }
 
-bool Vector3f::operator==(const Vector3f& rhs) {
+bool Vector3f::operator==(const Vector3f& rhs) const {
     return (x == rhs.x && y == rhs.y && z == rhs.z);
 }
 
-Vector3f Vector3f::abs() { return abs(*this); }
+Vector3f Vector3f::abs() const { return abs(*this); }
 Vector3f Vector3f::abs(const Vector3f& v) {
     Vector3f result(v);
     result.x = std::abs(v.x);
@@ -147,18 +147,18 @@ void Vector3f::normalize() {
     y *= scale;
     z *= scale;
 }
-Vector3f Vector3f::normalized() {
+Vector3f Vector3f::normalized() const {
     Vector3f v(*this);
     v.normalize();
     return v;
 }
 
-float Vector3f::dot(const Vector3f& rhs) { return dot(*this, rhs); }
+float Vector3f::dot(const Vector3f& rhs) const { return dot(*this, rhs); }
 float Vector3f::dot(const Vector3f& lhs, const Vector3f& rhs) {
     return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
-Vector3f Vector3f::cross(const Vector3f& rhs) { return cross(*this, rhs); }
+Vector3f Vector3f::cross(const Vector3f& rhs) const { return cross(*this, rhs); }
 Vector3f Vector3f::cross(const Vector3f& lhs, const Vector3f& rhs) {
     Vector3f v;
     cross(lhs, rhs, v);
@@ -170,12 +170,12 @@ void Vector3f::cross(const Vector3f& lhs, const Vector3f& rhs, Vector3f& out) {
     out.z = lhs.x * rhs.y - lhs.y * rhs.x;
 }
 
-float Vector3f::angle(const Vector3f& rhs) { return angle(*this, rhs); }
+float Vector3f::angle(const Vector3f& rhs) const { return angle(*this, rhs); }
 float Vector3f::angle(const Vector3f& lhs, const Vector3f& rhs) {
     return std::acos(clamp(dot(lhs, rhs) / (lhs.length() * rhs.length()), -1.0f, 1.0f));
 }
 
-bool Vector3f::compareDir(const Vector3f& rhs) { return compareDir(*this, rhs); }
+bool Vector3f::compareDir(const Vector3f& rhs) const { return compareDir(*this, rhs); }
 bool Vector3f::compareDir(const Vector3f& lhs, const Vector3f& rhs) {
     return ((lhs.x > 0 && rhs.x > 0) || (lhs.x < 0 && rhs.x < 0) || (lhs.x == 0.0f && rhs.x == 0.0f)) &&
            ((lhs.y > 0 && rhs.y > 0) || (lhs.y < 0 && rhs.y < 0) || (lhs.y == 0.0f && rhs.y == 0.0f)) &&
@@ -230,7 +230,7 @@ Vector4f::Vector4f(float _x, float _y) : x(_x), y(_y), z(0.0f), w(0.0f) {}
 Vector4f::Vector4f(float _x, float _y, float _z) : x(_x), y(_y), z(_z), w(0.0f) {}
 Vector4f::Vector4f(float _x, float _y, float _z, float _w) : x(_x), y(_y), z(_z), w(_w) {}
 
-std::string Vector4f::str() {
+std::string Vector4f::str() const {
     std::stringstream ss;
     ss << "{" << x << ", " << y << ", " << z << ", " << w << "}";
     return ss.str();
@@ -251,16 +251,16 @@ float Vector4f::operator[](int index) const {
     }
 }
 
-Vector4f Vector4f::operator-() {
+Vector4f Vector4f::operator-() const {
     return Vector4f(-x, -y, -z, -w);
 }
 
-Vector4f Vector4f::operator+(float value) {
+Vector4f Vector4f::operator+(float value) const {
     Vector4f v(*this);
     v += value;
     return v;
 }
-Vector4f Vector4f::operator+(const Vector4f& rhs) {
+Vector4f Vector4f::operator+(const Vector4f& rhs) const {
     Vector4f v(*this);
     v += rhs;
     return v;
@@ -274,12 +274,12 @@ Vector4f Vector4f::operator+=(const Vector4f& rhs) {
     return *this;
 }
 
-Vector4f Vector4f::operator-(float value) {
+Vector4f Vector4f::operator-(float value) const {
     Vector4f v(*this);
     v -= value;
     return v;
 }
-Vector4f Vector4f::operator-(const Vector4f& rhs) {
+Vector4f Vector4f::operator-(const Vector4f& rhs) const {
     Vector4f v(*this);
     v -= rhs;
     return v;
@@ -293,12 +293,12 @@ Vector4f Vector4f::operator-=(const Vector4f& rhs) {
     return *this;
 }
 
-Vector4f Vector4f::operator*(float value) {
+Vector4f Vector4f::operator*(float value) const {
     Vector4f v(*this);
     v *= value;
     return v;
 }
-Vector4f Vector4f::operator*(const Vector4f& rhs) {
+Vector4f Vector4f::operator*(const Vector4f& rhs) const {
     Vector4f v(*this);
     v *= rhs;
     return v;
@@ -312,12 +312,12 @@ Vector4f Vector4f::operator*=(const Vector4f& rhs) {
     return *this;
 }
 
-Vector4f Vector4f::operator/(float value) {
+Vector4f Vector4f::operator/(float value) const {
     Vector4f v(*this);
     v /= value;
     return v;
 }
-Vector4f Vector4f::operator/(const Vector4f& rhs) {
+Vector4f Vector4f::operator/(const Vector4f& rhs) const {
     Vector4f v(*this);
     v /= rhs;
     return v;
@@ -331,12 +331,12 @@ Vector4f Vector4f::operator/=(const Vector4f& rhs) {
     return *this;
 }
 
-Vector3f Vector4f::xyz() {
+Vector3f Vector4f::xyz() const {
     return Vector3f(x, y, z);
 }
 
-float Vector4f::length() { return std::sqrt(x * x + y * y + z * z + w * w); }
-float Vector4f::lengthSquared() { return x * x + y * y + z * z + w * w; }
+float Vector4f::length() const { return std::sqrt(x * x + y * y + z * z + w * w); }
+float Vector4f::lengthSquared() const { return x * x + y * y + z * z + w * w; }
 
 void Vector4f::normalize() {
     float scale = 1.0f / length();
@@ -345,7 +345,7 @@ void Vector4f::normalize() {
     z *= scale;
     w *= scale;
 }
-Vector4f Vector4f::normalized() {
+Vector4f Vector4f::normalized() const {
     Vector4f v(*this);
     v.normalize();
     return v;

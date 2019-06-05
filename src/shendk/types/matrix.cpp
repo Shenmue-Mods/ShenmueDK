@@ -285,6 +285,60 @@ void Matrix4f::multiply(const Matrix4f& lhs, const Matrix4f& rhs, Matrix4f& out)
     out.row3.w = (((lM41 * rM14) + (lM42 * rM24)) + (lM43 * rM34)) + (lM44 * rM44);
 }
 
+Vector3f Matrix4f::extractTranslation() { return extractTranslation(*this); }
+Vector3f Matrix4f::extractTranslation(const Matrix4f& m) { return m.row3.xyz(); }
+
+Vector3f Matrix4f::extractScale() { return extractScale(*this); }
+Vector3f Matrix4f::extractScale(const Matrix4f& m) {
+    return Vector3f(m.row0.xyz().lengthSquared(), m.row1.xyz().lengthSquared(), m.row2.xyz().lengthSquared());
+}
+
+Vector4f Matrix4f::extractRotation(bool normalizeRows) { return extractRotation(*this, normalizeRows); }
+Vector4f Matrix4f::extractRotation(const Matrix4f& m, bool normalizeRows) {
+    Vector3f row0 = m.row0.xyz();
+    Vector3f row1 = m.row1.xyz();
+    Vector3f row2 = m.row2.xyz();
+    if (normalizeRows) {
+        row0 = row0.normalized();
+        row1 = row1.normalized();
+        row2 = row2.normalized();
+    }
+
+    Vector4f q;
+    float trace = 0.25f * (row0[0] + row1[1] + row2[2] + 1.0f);
+    if (trace > 0) {
+        float sq = std::sqrt(trace);
+        q.w = sq;
+        sq = 1.0f / (4.0f * sq);
+        q.x = (row1[2] - row2[1]) * sq;
+        q.y = (row2[0] - row0[2]) * sq;
+        q.z = (row0[1] - row1[0]) * sq;
+    } else if (row0[0] > row1[1] && row0[0] > row2[2]) {
+        float sq = 2.0f * std::sqrt(1.0f + row0[0] - row1[1] - row2[2]);
+        q.x = 0.25f * sq;
+        sq = 1.0f / sq;
+        q.w = (row2[1] - row1[2]) * sq;
+        q.y = (row1[0] + row0[1]) * sq;
+        q.z = (row2[0] + row0[2]) * sq;
+    } else if (row1[1] > row2[2]) {
+        float sq = 2.0f * std::sqrt(1.0f + row1[1] - row0[0] - row2[2]);
+        q.y = 0.25f * sq;
+        sq = 1.0f / sq;
+        q.w = (row2[0] - row0[2]) * sq;
+        q.x = (row1[0] + row0[1]) * sq;
+        q.z = (row2[1] + row1[2]) * sq;
+    } else {
+        float sq = 2.0f * std::sqrt(1.0f + row2[2] - row0[0] - row1[1]);
+        q.z = 0.25f * sq;
+        sq = 1.0f / sq;
+        q.w = (row1[0] - row0[1]) * sq;
+        q.x = (row2[0] + row0[2]) * sq;
+        q.y = (row2[1] + row1[2]) * sq;
+    }
+    q.normalize();
+    return q;
+}
+
 Matrix4f Matrix4f::createTranslation(const Vector3f& v) { return createTranslation(v.x, v.y, v.z); }
 Matrix4f Matrix4f::createTranslation(float x, float y, float z) {
     Matrix4f m = identity();

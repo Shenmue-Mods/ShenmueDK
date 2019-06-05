@@ -34,7 +34,7 @@ struct Vector3f {
     Vector3f(float _x, float _y);
     Vector3f(float _x, float _y, float _z);
 
-    std::string str();
+    std::string str() const;
 
     float operator[](int index) const;
 
@@ -60,28 +60,28 @@ struct Vector3f {
     Vector3f operator/=(float value);
     Vector3f operator/=(const Vector3f& rhs);
 
-    bool operator==(const Vector3f& rhs);
+    bool operator==(const Vector3f& rhs) const;
 
-    Vector3f abs();
+    Vector3f abs() const;
     static Vector3f abs(const Vector3f& v);
 
     float length() const;
     float lengthSquared() const;
 
     void normalize();
-    Vector3f normalized();
+    Vector3f normalized() const;
 
-    float dot(const Vector3f& rhs);
+    float dot(const Vector3f& rhs) const;
     static float dot(const Vector3f& lhs, const Vector3f& rhs);
 
-    Vector3f cross(const Vector3f& rhs);
+    Vector3f cross(const Vector3f& rhs) const;
     static Vector3f cross(const Vector3f& lhs, const Vector3f& rhs);
     static void cross(const Vector3f& lhs, const Vector3f& rhs, Vector3f& out);
 
-    float angle(const Vector3f& rhs);
+    float angle(const Vector3f& rhs) const;
     static float angle(const Vector3f& lhs, const Vector3f& rhs);
 
-    bool compareDir(const Vector3f& rhs);
+    bool compareDir(const Vector3f& rhs) const;
     static bool compareDir(const Vector3f& lhs, const Vector3f& rhs);
 
     float distance(const Vector3f& rhs) const;
@@ -113,39 +113,39 @@ struct Vector4f {
     Vector4f(float _x, float _y, float _z);
     Vector4f(float _x, float _y, float _z, float _w);
 
-    std::string str();
+    std::string str() const;
 
     float operator[](int index) const;
 
-    Vector4f operator-();
+    Vector4f operator-() const;
 
-    Vector4f operator+(float value);
-    Vector4f operator+(const Vector4f& rhs);
+    Vector4f operator+(float value) const;
+    Vector4f operator+(const Vector4f& rhs) const;
     Vector4f operator+=(float value);
     Vector4f operator+=(const Vector4f& rhs);
 
-    Vector4f operator-(float value);
-    Vector4f operator-(const Vector4f& rhs);
+    Vector4f operator-(float value) const;
+    Vector4f operator-(const Vector4f& rhs) const;
     Vector4f operator-=(float value);
     Vector4f operator-=(const Vector4f& rhs);
 
-    Vector4f operator*(float value);
-    Vector4f operator*(const Vector4f& rhs);
+    Vector4f operator*(float value) const;
+    Vector4f operator*(const Vector4f& rhs) const;
     Vector4f operator*=(float value);
     Vector4f operator*=(const Vector4f& rhs);
 
-    Vector4f operator/(float value);
-    Vector4f operator/(const Vector4f& rhs);
+    Vector4f operator/(float value) const;
+    Vector4f operator/(const Vector4f& rhs) const;
     Vector4f operator/=(float value);
     Vector4f operator/=(const Vector4f& rhs);
 
-    Vector3f xyz();
+    Vector3f xyz() const;
 
-    float length();
-    float lengthSquared();
+    float length() const;
+    float lengthSquared() const;
 
     void normalize();
-    Vector4f normalized();
+    Vector4f normalized() const;
 
     float dot(const Vector4f& rhs);
     static float dot(const Vector4f& lhs, const Vector4f& rhs);

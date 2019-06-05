@@ -46,6 +46,15 @@ struct Matrix4f {
 
     static void multiply(const Matrix4f& lhs, const Matrix4f& rhs, Matrix4f& out);
 
+    Vector3f extractTranslation();
+    static Vector3f extractTranslation(const Matrix4f& m);
+
+    Vector3f extractScale();
+    static Vector3f extractScale(const Matrix4f& m);
+
+    Vector4f extractRotation(bool normalizeRows = true);
+    static Vector4f extractRotation(const Matrix4f& m, bool normalizeRows = true);
+
     static Matrix4f createTranslation(const Vector3f& v);
     static Matrix4f createTranslation(float x, float y, float z);
 
