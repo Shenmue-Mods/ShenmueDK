@@ -63,6 +63,7 @@ void OBJ::_write(std::ostream& stream) {
     }
 
     ssMeshes << "o obj_0\n";
+    ssMeshes << "s 1\n";
 
     for (auto node : model.rootNode->getAllNodes()) {
         Matrix4f transformMatrix = node->getTransformMatrix();
