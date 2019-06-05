@@ -31,18 +31,23 @@ struct MOTN : public File {
             uint32_t data[4];
         };
 
-        struct Header {
-            uint32_t unknown;
-            uint16_t block1Offset;
-            uint16_t block2Offset;
-            uint16_t block3Offset;
-            uint16_t someOffset;
+        struct Data {
+
+            struct Header {
+                uint32_t flags = 0;
+                uint16_t block1Offset = 0; // array for count of keyframes
+                uint16_t block2Offset = 0; // array for keyframe type?
+                uint16_t block3Offset = 0; // array for keyframe frame?
+                uint16_t block4Offset = 0; // array of ushort degree values
+            };
+
+            Data::Header header;
         };
 
         std::string name;
         Offsets offsets;
         ExtraData extraData;
-        uint16_t flags;
+        Data data;
     };
 
     struct Header {
@@ -71,6 +76,24 @@ protected:
     virtual void _read(std::istream& stream);
     virtual void _write(std::ostream& stream);
     virtual bool _isValid(uint32_t signature);
+
+private:
+    const uint8_t countLookupTable[256] = {0,  1,  2,  3,  1,  2,  3,  4,  2,  3,  4,  5,  3,  4,  5,  6,
+                                           1,  2,  3,  4,  2,  3,  4,  5,  3,  4,  5,  6,  4,  5,  6,  7,
+                                           2,  3,  4,  5,  3,  4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,
+                                           3,  4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,
+                                           1,  2,  3,  4,  2,  3,  4,  5,  3,  4,  5,  6,  4,  5,  6,  7,
+                                           2,  3,  4,  5,  3,  4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,
+                                           3,  4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,
+                                           4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10,
+                                           2,  3,  4,  5,  3,  4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,
+                                           3,  4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,
+                                           4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10,
+                                           5,  6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10, 8,  9,  10, 11,
+                                           3,  4,  5,  6,  4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,
+                                           4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10,
+                                           5,  6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10, 8,  9,  10, 11,
+                                           6,  7,  8,  9,  7,  8,  9,  10, 8,  9,  10, 11, 9,  10, 11, 12};
 
 };
 
