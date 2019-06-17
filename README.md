@@ -31,10 +31,9 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 | Name| Read | Write | Description | Notes |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
 | PVRT | :heavy_check_mark: | :x: | PowerVR Texture | |
-| DDS | :x: | :x: | DirectDraw_Surface |  |
-| JPEG | :x: | :x: | JPEG format |  |
-| BMP | :x: | :x: | Bitmap format |  |
-| PNG | :x: | :x: | PNG format |  |
+| DDS | :heavy_check_mark: | :heavy_check_mark: | DirectDraw_Surface |  |
+| BMP | :heavy_check_mark: | :heavy_check_mark: | Bitmap format |  |
+| PNG | :heavy_check_mark: | :heavy_check_mark: | PNG format |  |
 
 #### PVR color formats
 
@@ -78,11 +77,12 @@ For more informations about the file formats see the [wulinshu wiki](https://wul
 
 | Name| Read | Write | Description | Notes |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
-| MT5 | :x: | :x: | Model Container | |
+| MT5 | :heavy_check_mark: | :x: | Model Container | |
 | MT6 | :x: | :x: | Model Container | |
 | MT7 | :x: | :x: | Model Container | |
 | MOTN | :x: | :x: | Motion data (Animation sequences) | |
-| OBJ | :x: | :x: | Wavefront OBJ | |
+| OBJ | :x: | :heavy_check_mark: | Wavefront OBJ | |
+| DAE | :x: | :heavy_check_mark: | Khronos Group COLLADA | |
 
 ### Audio
 
