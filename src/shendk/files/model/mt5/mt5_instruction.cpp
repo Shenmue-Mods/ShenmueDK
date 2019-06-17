@@ -176,18 +176,18 @@ void InStrip::_read(std::istream& stream) {
                 double texU = u;
                 double texV = v;
                 if (isUVH) {
-                    texU = texU * 0.000015258789;
-                    texV = texV * 0.000015258789;
+                    texU = texU / 65536.0;
+                    texV = texV / 65536.0;
                 } else {
                     if (texU < 61440.0) {
                         texU /= uvSize;
                     } else {
-                        texU = texU * 0.00000000023283064;
+                        texU = texU / 4294967296.0;
                     }
                     if (texV < 61440.0) {
                         texV /= uvSize;
                     } else {
-                        texV = texV * 0.00000000023283064;
+                        texV = texV / 4294967296.0;
                     }
                 }
                 face.texcoordIndices.push_back(mesh->vertexBuffer().texcoords.size());

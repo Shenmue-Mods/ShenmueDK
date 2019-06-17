@@ -7,12 +7,14 @@
 #include "shendk/files/image/pvr/compression_codec.h"
 #include "shendk/files/image/pvr/vector_quantizer.h"
 
+#include "shendk/files/image/dds.h"
 
 namespace shendk {
 
 PVR::PVR() = default;
 PVR::PVR(const std::string& filepath) { read(filepath); }
 PVR::PVR(std::istream& stream) { read(stream); }
+PVR::PVR(std::shared_ptr<Image> image) { mipmaps.push_back(image); }
 PVR::~PVR() {}
 
 void PVR::_read(std::istream& stream) {
@@ -26,11 +28,13 @@ void PVR::_read(std::istream& stream) {
     if (signature == gbix) {
         gbixOffset = 0;
         pvrtOffset = sizeof(PVR::GBIX);
+        hasGlobalIndex = true;
     } else {
         stream.read(reinterpret_cast<char*>(&signature), sizeof(uint32_t));
         if (signature == gbix) {
             gbixOffset = 4;
             pvrtOffset = 4 + sizeof(PVR::GBIX);
+            hasGlobalIndex = true;
         } else if (signature == pvrt) {
             gbixOffset = -1;
             pvrtOffset = 4;
@@ -52,7 +56,10 @@ void PVR::_read(std::istream& stream) {
 
     // read image
     if (header.dataFormat == pvr::DataFormat::DDS || header.dataFormat == pvr::DataFormat::DDS_2) {
-        throw new std::runtime_error("DDS not implemented!"); // TODO: implement
+        DDS dds(stream);
+        for (auto& mipmap : dds.mipmaps) {
+            mipmaps.push_back(mipmap);
+        }
     } else {
         pvr::PixelCodec* pixelCodec = pvr::PixelCodec::getPixelCodec(header.pixelFormat);
         pvr::DataCodec* dataCodec = pvr::DataCodec::getDataCodec(header.dataFormat);
@@ -161,8 +168,35 @@ void PVR::_write(std::ostream& stream) {
     int64_t baseOffset = stream.tellp();
 
     if (header.dataFormat == pvr::DataFormat::DDS || header.dataFormat == pvr::DataFormat::DDS_2) {
-        throw new std::runtime_error("DDS not implemented!"); // TODO: implement
+        if (!(header.pixelFormat == pvr::PixelFormat::DDS_DXT1_RGB24 ||
+              header.pixelFormat == pvr::PixelFormat::DDS_DXT3_RGBA32)) {
+            throw std::runtime_error("Expected DDS RGB24 or RGBA32 color format!");
+        }
+        if (hasGlobalIndex) {
+            stream.write(reinterpret_cast<char*>(&globalIndex), sizeof(GBIX));
+        }
+        int64_t headerOffset = stream.tellp();
+        stream.write(reinterpret_cast<char*>(&header), sizeof(Header));
+        int64_t dataOffset = stream.tellp();
+
+        if (header.pixelFormat == pvr::PixelFormat::DDS_DXT1_RGB24) {
+            DDS dds(mipmaps.front(), DDS::DXTC::DXT1);
+            dds.write(stream);
+        } else if (header.pixelFormat == pvr::PixelFormat::DDS_DXT3_RGBA32) {
+            DDS dds(mipmaps.front(), DDS::DXTC::DXT3);
+            dds.write(stream);
+        }
+
+        int64_t endOffset = stream.tellp();
+        header.size = endOffset - dataOffset;
+        stream.seekp(headerOffset, std::ios::beg);
+        stream.write(reinterpret_cast<char*>(&header), sizeof(Header));
+
+        stream.seekp(endOffset, std::ios::beg);
     } else {
+
+        throw std::runtime_error("Not implemented yet!");
+
         pvr::PixelCodec* pixelCodec = pvr::PixelCodec::getPixelCodec(header.pixelFormat);
         pvr::DataCodec* dataCodec = pvr::DataCodec::getDataCodec(header.dataFormat);
 
@@ -195,6 +229,10 @@ void PVR::_write(std::ostream& stream) {
 bool PVR::_isValid(uint32_t signature) {
     // TODO: implement
     return false;
+}
+
+std::vector<char> PVR::bitmapToRawVQ(std::shared_ptr<Image> img, uint16_t codeBookSize, std::vector<char>& palette) {
+
 }
 
 }

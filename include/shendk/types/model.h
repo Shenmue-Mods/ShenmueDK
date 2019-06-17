@@ -15,6 +15,7 @@
 namespace shendk {
 
 enum class BoneID : uint8_t {
+    Root = 0,
     Spine = 1,
     Hip = 14,
     RightUpperLeg = 16,
@@ -53,6 +54,7 @@ enum class BoneID : uint8_t {
 };
 
 static std::map<BoneID, std::string> BoneName = {
+    {BoneID::Root, "Root"},
     {BoneID::Spine, "Spine"},
     {BoneID::Hip, "Hip"},
     {BoneID::RightUpperLeg, "RightUpperLeg"},
@@ -291,16 +293,87 @@ struct Model {
                    float weldThreshold = 0.000005f, float backfaceAngle = 270.0f);
 };
 
-struct Animation {
 
+enum class IKBoneID : uint8_t {
+    Root = 0,
+
+    Hip = 1,
+
+    RightUpperLeg = 5,
+    RightFootIKTarget = 8,
+    RightFoot = 9,
+
+    LeftUpperLeg = 12,
+    LeftFootIKTarget = 15,
+    LeftFoot = 16,
+
+    Torso = 18,
+    UpperTorsoIKTarget = 20,
+    Unknown0x15 = 21,
+    HeadLookAtTarget = 23,
+
+    RightShoulder = 25,
+    RightArm = 26,
+    RightHandIKTarget = 29,
+    RightHand = 30,
+
+    LeftShoulder = 31,
+    LeftArm = 32,
+    LeftHandIKTarget = 33,
+    LeftHand = 36,
+
+    None = 0xFF
+};
+
+static std::map<IKBoneID, BoneID> IKBoneMap {
+    {IKBoneID::Root, BoneID::Root},
+    {IKBoneID::Hip, BoneID::Hip},
+    {IKBoneID::RightUpperLeg, BoneID::RightUpperLeg},
+    {IKBoneID::RightFootIKTarget, BoneID::RightLowerLeg}, // no IK rig yet, map to lower leg
+    {IKBoneID::RightFoot, BoneID::RightFoot},
+
+    {IKBoneID::LeftUpperLeg, BoneID::LeftUpperLeg},
+    {IKBoneID::LeftFootIKTarget, BoneID::LeftLowerLeg}, // no IK rig yet, map to lower leg
+    {IKBoneID::LeftFoot, BoneID::LeftFoot},
+
+    {IKBoneID::Torso, BoneID::Spine},
+    {IKBoneID::UpperTorsoIKTarget, BoneID::Spine}, // no IK rig yet, map to spine
+    {IKBoneID::HeadLookAtTarget, BoneID::Head}, // no IK rig yet, map to head
+
+    {IKBoneID::RightShoulder, BoneID::RightShoulder},
+    {IKBoneID::RightArm, BoneID::RightUpperArm},
+    {IKBoneID::RightHandIKTarget, BoneID::RightLowerArm}, // no IK rig yet, map to lower arm
+    {IKBoneID::RightHand, BoneID::RightHand},
+
+    {IKBoneID::LeftShoulder, BoneID::LeftShoulder},
+    {IKBoneID::LeftArm, BoneID::LeftUpperArm},
+    {IKBoneID::LeftHandIKTarget, BoneID::LeftLowerArm}, // no IK rig yet, map to lower arm
+    {IKBoneID::LeftHand, BoneID::LeftHand},
+};
+
+enum class Interpolation {
+    STEP,
+    LINEAR
+};
+
+static std::map<Interpolation, std::string> InterpolationString {
+    {Interpolation::STEP, "STEP"},
+    {Interpolation::LINEAR, "LINEAR"}
 };
 
 struct KeyFrame {
-
+    float time;
+    Matrix4f transform;
+    Interpolation interpolation;
 };
 
 struct Sequence {
+    std::vector<KeyFrame> frames;
+};
 
+struct Animation {
+    std::string name;
+    std::map<uint32_t, Sequence> sequences;
 };
 
 }

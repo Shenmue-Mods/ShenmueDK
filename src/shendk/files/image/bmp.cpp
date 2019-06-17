@@ -9,6 +9,7 @@ namespace shendk {
 
 BMP::BMP() = default;
 BMP::BMP(const std::string& filepath) { read(filepath); }
+BMP::BMP(std::istream& stream) { read(stream); }
 BMP::BMP(std::shared_ptr<Image> image) { mipmaps.push_back(image); }
 BMP::~BMP() {}
 

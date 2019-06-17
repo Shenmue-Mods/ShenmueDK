@@ -11,6 +11,7 @@ struct BMP : public ImageFile {
 
     BMP();
     BMP(const std::string& filepath);
+    BMP(std::istream& stream);
     BMP(std::shared_ptr<Image> image);
     ~BMP();
 

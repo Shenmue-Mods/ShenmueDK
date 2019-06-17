@@ -9,9 +9,18 @@ namespace shendk {
  */
 struct DDS : public ImageFile {
 
+    enum class DXTC {
+        DXT1,
+        DXT3
+    };
+
     DDS();
     DDS(const std::string& filepath);
+    DDS(std::istream& stream);
+    DDS(std::shared_ptr<Image> image, DXTC mode = DXTC::DXT3);
     ~DDS();
+
+    DXTC dxtc;
 
 protected:
     virtual void _read(std::istream& stream);

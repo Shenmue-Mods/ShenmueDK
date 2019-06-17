@@ -32,15 +32,21 @@ struct PVR : public ImageFile {
     PVR();
     PVR(const std::string& filepath);
     PVR(std::istream& stream);
+    PVR(std::shared_ptr<Image> image);
     ~PVR();
 
     PVR::Header header;
     PVR::GBIX globalIndex;
+    bool hasGlobalIndex;
 
 protected:
     virtual void _read(std::istream& stream);
     virtual void _write(std::ostream& stream);
     virtual bool _isValid(uint32_t signature);
+
+private:
+    std::vector<char> bitmapToRawVQ(std::shared_ptr<Image> img, uint16_t codeBookSize, std::vector<char>& palette);
+
 };
 
 }

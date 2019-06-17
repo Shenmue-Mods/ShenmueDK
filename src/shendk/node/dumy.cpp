@@ -5,6 +5,7 @@ namespace shendk {
 DUMY::DUMY() {
     data.resize(12);
     memset(data.data(), 0, data.size());
+    header.signature = 0x594D5544;
 }
 DUMY::DUMY(std::istream& stream) { read(stream); }
 DUMY::~DUMY() {}

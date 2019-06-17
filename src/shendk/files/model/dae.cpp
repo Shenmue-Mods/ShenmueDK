@@ -13,7 +13,10 @@ using namespace tinyxml2;
 namespace shendk {
 
 DAE::DAE() {}
-DAE::DAE(Model m) { model = m; }
+DAE::DAE(Model m, std::vector<Animation> a) {
+    model = m;
+    animations = a;
+}
 DAE::DAE(const std::string& filepath) { read(filepath); }
 DAE::~DAE() {}
 
@@ -396,6 +399,7 @@ void DAE::_write(std::ostream& stream) {
     for (auto& n : model.rootNode->getAllNodes()) {
         Matrix4f mat = n->getTransformMatrix().invert();
         ss << matrixText(mat) << " ";
+        //ss << "1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 ";
     }
     source_bind_array->SetText(ss.str().c_str());
     source_bind_pose->InsertEndChild(source_bind_array);
@@ -568,8 +572,133 @@ void DAE::_write(std::ostream& stream) {
     root->InsertEndChild(scene);
 
     // create animations
-    //XMLElement* library_animations = doc.NewElement("library_animations");
-    //root->InsertEndChild(library_animations);
+    if (animations.size()) {
+        XMLElement* library_animations = doc.NewElement("library_animations");
+        for (auto& animation : animations) {
+            XMLElement* animationNode = doc.NewElement("animation");
+            animationNode->SetAttribute("name", animation.name.c_str());
+            animationNode->SetAttribute("id", ("action_container-" + animation.name).c_str());
+
+            for (auto [key, value] : animation.sequences) {
+
+                std::string seqId = "Node_" + std::to_string(key) + "_pose_matrix";
+                std::string seqInputId = seqId + "-input";
+                std::string seqInputArrayId = seqInputId + "-array";
+                std::string seqOutputId = seqId + "-output";
+                std::string seqOutputArrayId = seqOutputId + "-array";
+                std::string seqInterpolationId = seqId + "-interpolation";
+                std::string seqInterpolationArrayId = seqInterpolationId + "-array";
+                std::string seqSamplerId = seqId + "-sampler";
+                int frameCount = value.frames.size();
+
+                XMLElement* sequenceNode = doc.NewElement("animation");
+                sequenceNode->SetAttribute("name", animation.name.c_str());
+                sequenceNode->SetAttribute("id", seqId.c_str());
+
+                // time (input)
+                XMLElement* source_time = doc.NewElement("source");
+                source_time->SetAttribute("id", seqInputId.c_str());
+                XMLElement* source_time_array = doc.NewElement("float_array");
+                source_time_array->SetAttribute("id", seqInputArrayId.c_str());
+                source_time_array->SetAttribute("count", frameCount);
+                ss.str(std::string());
+                for (auto& frame : value.frames) {
+                    ss << std::to_string(frame.time) << " ";
+                }
+                source_time_array->SetText(ss.str().c_str());
+                source_time->InsertEndChild(source_time_array);
+                XMLElement* source_time_technique = doc.NewElement("technique_common");
+                XMLElement* source_time_accessor = doc.NewElement("accessor");
+                source_time_accessor->SetAttribute("source", ("#" + seqInputArrayId).c_str());
+                source_time_accessor->SetAttribute("count", frameCount);
+                source_time_accessor->SetAttribute("stride", "1");
+                XMLElement* source_time_param = doc.NewElement("param");
+                source_time_param->SetAttribute("name", "TIME");
+                source_time_param->SetAttribute("type", "float");
+                source_time_accessor->InsertEndChild(source_time_param);
+                source_time_technique->InsertEndChild(source_time_accessor);
+                source_time->InsertEndChild(source_time_technique);
+                sequenceNode->InsertEndChild(source_time);
+
+                // transform matrices (output)
+                XMLElement* source_matrix = doc.NewElement("source");
+                source_matrix->SetAttribute("id", seqOutputId.c_str());
+                XMLElement* source_matrix_array = doc.NewElement("float_array");
+                source_matrix_array->SetAttribute("id", seqOutputArrayId.c_str());
+                source_matrix_array->SetAttribute("count", frameCount * 16);
+                ss.str(std::string());
+                for (auto& frame : value.frames) {
+                    ss << matrixText(frame.transform) << " ";
+                }
+                source_matrix_array->SetText(ss.str().c_str());
+                source_matrix->InsertEndChild(source_matrix_array);
+                XMLElement* source_matrix_technique = doc.NewElement("technique_common");
+                XMLElement* source_matrix_accessor = doc.NewElement("accessor");
+                source_matrix_accessor->SetAttribute("source", ("#" + seqOutputArrayId).c_str());
+                source_matrix_accessor->SetAttribute("count", frameCount);
+                source_matrix_accessor->SetAttribute("stride", "16");
+                XMLElement* source_matrix_param = doc.NewElement("param");
+                source_matrix_param->SetAttribute("name", "TRANSFORM");
+                source_matrix_param->SetAttribute("type", "float4x4");
+                source_matrix_accessor->InsertEndChild(source_matrix_param);
+                source_matrix_technique->InsertEndChild(source_matrix_accessor);
+                source_matrix->InsertEndChild(source_matrix_technique);
+                sequenceNode->InsertEndChild(source_matrix);
+
+                // interpolation
+                XMLElement* source_interpolation = doc.NewElement("source");
+                source_interpolation->SetAttribute("id", seqInterpolationId.c_str());
+                XMLElement* source_interpolation_array = doc.NewElement("Name_array");
+                source_interpolation_array->SetAttribute("id", seqInterpolationArrayId.c_str());
+                source_interpolation_array->SetAttribute("count", frameCount);
+                ss.str(std::string());
+                for (auto& frame : value.frames) {
+                    ss << InterpolationString[frame.interpolation] << " ";
+                }
+                source_interpolation_array->SetText(ss.str().c_str());
+                source_interpolation->InsertEndChild(source_interpolation_array);
+                XMLElement* source_interpolation_technique = doc.NewElement("technique_common");
+                XMLElement* source_interpolation_accessor = doc.NewElement("accessor");
+                source_interpolation_accessor->SetAttribute("source", ("#" + seqInterpolationArrayId).c_str());
+                source_interpolation_accessor->SetAttribute("count", frameCount);
+                source_interpolation_accessor->SetAttribute("stride", "1");
+                XMLElement* source_interpolation_param = doc.NewElement("param");
+                source_interpolation_param->SetAttribute("name", "INTERPOLATION");
+                source_interpolation_param->SetAttribute("type", "name");
+                source_interpolation_accessor->InsertEndChild(source_interpolation_param);
+                source_interpolation_technique->InsertEndChild(source_interpolation_accessor);
+                source_interpolation->InsertEndChild(source_interpolation_technique);
+                sequenceNode->InsertEndChild(source_interpolation);
+
+                // sampler
+                XMLElement* sampler = doc.NewElement("sampler");
+                sampler->SetAttribute("id", seqSamplerId.c_str());
+                XMLElement* sampler_input = doc.NewElement("input");
+                sampler_input->SetAttribute("semantic", "INPUT");
+                sampler_input->SetAttribute("source", ("#" + seqInputId).c_str());
+                sampler->InsertEndChild(sampler_input);
+                XMLElement* sampler_output = doc.NewElement("input");
+                sampler_output->SetAttribute("semantic", "OUTPUT");
+                sampler_output->SetAttribute("source", ("#" + seqOutputId).c_str());
+                sampler->InsertEndChild(sampler_output);
+                XMLElement* sampler_interpolation = doc.NewElement("input");
+                sampler_interpolation->SetAttribute("semantic", "INTERPOLATION");
+                sampler_interpolation->SetAttribute("source", ("#" + seqInterpolationId).c_str());
+                sampler->InsertEndChild(sampler_interpolation);
+                sequenceNode->InsertEndChild(sampler);
+
+                // channel
+                XMLElement* channel = doc.NewElement("channel");
+                channel->SetAttribute("source", ("#" + seqSamplerId).c_str());
+                channel->SetAttribute("target", boneNames[key].c_str());
+                sequenceNode->InsertEndChild(channel);
+
+                animationNode->InsertEndChild(sequenceNode);
+            }
+            library_animations->InsertEndChild(animationNode);
+        }
+        root->InsertEndChild(library_animations);
+    }
 
     doc.InsertFirstChild(root);
     XMLPrinter printer;

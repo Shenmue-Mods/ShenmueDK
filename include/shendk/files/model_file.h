@@ -7,6 +7,7 @@ namespace shendk {
 
 struct ModelFile : public File {
     Model model;
+    std::vector<Animation> animations;
 };
 
 

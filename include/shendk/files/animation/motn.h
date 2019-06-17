@@ -5,6 +5,7 @@
 #include <map>
 
 #include "shendk/files/file.h"
+#include "shendk/types/model.h"
 
 namespace shendk {
 
@@ -12,13 +13,6 @@ namespace shendk {
  * @brief Shenmue animation file.
  */
 struct MOTN : public File {
-
-    struct KeyFrame {
-        uint32_t frame;
-        float value0;
-        float value1;
-        float value2;
-    };
 
     struct Sequence {
 
@@ -72,6 +66,8 @@ struct MOTN : public File {
     std::vector<Sequence> sequences;
     std::map<float, int32_t> valFreq;
 
+    std::vector<Animation> animations;
+
 protected:
     virtual void _read(std::istream& stream);
     virtual void _write(std::ostream& stream);
@@ -94,6 +90,8 @@ private:
                                            4,  5,  6,  7,  5,  6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10,
                                            5,  6,  7,  8,  6,  7,  8,  9,  7,  8,  9,  10, 8,  9,  10, 11,
                                            6,  7,  8,  9,  7,  8,  9,  10, 8,  9,  10, 11, 9,  10, 11, 12};
+
+    uint8_t calcCountLookupTable(uint8_t index);
 
 };
 

@@ -11,7 +11,7 @@ namespace shendk {
 struct DAE : public ModelFile {
 
     DAE();
-    DAE(Model m);
+    DAE(Model m, std::vector<Animation> a = std::vector<Animation>());
     DAE(const std::string& filepath);
     ~DAE();
 

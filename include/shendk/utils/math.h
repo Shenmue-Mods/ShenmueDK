@@ -28,6 +28,11 @@ inline float ushortToDegrees(uint16_t value) {
     return static_cast<float>(value) / 65535.0f * 360.0f;
 }
 
+inline float shortToDegrees(int16_t value) {
+    return static_cast<float>(value) / 65535.0f * 360.0f;
+}
+
+
 inline uint16_t degreesToUshort(float degrees) {
     return static_cast<uint16_t>(degrees / 360.0f * 65535.0f);
 }
@@ -49,5 +54,16 @@ inline double clamp(double value, double min, double max) {
     return std::max(std::min(value, max), min);
 }
 
+/** IEEE754 16-bit half-precision float conversion */
+inline float fromHalf(int16_t value) {
+    uint32_t valConv = value;
+    if (value < 0) {
+        valConv &= 0x00007FFF;
+        valConv |= 0xFFFC0000;
+    }
+    valConv <<= 0x0D;
+    valConv += 0x38000000;
+    return *(reinterpret_cast<float*>(&valConv));
+}
 
 }

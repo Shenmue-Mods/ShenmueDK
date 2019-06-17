@@ -11,6 +11,7 @@ struct PNG : public ImageFile {
 
     PNG();
     PNG(const std::string& filepath);
+    PNG(std::istream& stream);
     PNG(std::shared_ptr<Image> image);
     ~PNG();
 
