@@ -282,7 +282,10 @@ void MOTN::_read(std::istream& stream) {
             if (instruction == 0) break;
             if (index == (instruction >> 9)) {
                 std::cout << "Index: " << std::to_string(index) << " (" << std::to_string(instruction & 0x07) << ")" << std::endl;
-                std::cout  << BoneName.at(IKBoneMap.at((IKBoneID)index)) << std::endl;
+                
+                if (IKBoneMap.find((IKBoneID)index) != IKBoneMap.end() && BoneName.find(IKBoneMap.at((IKBoneID)index)) != BoneName.end()) {
+                    std::cout << BoneName.at(IKBoneMap.at((IKBoneID)index)) << std::endl;
+                }
                 
                 shendk::Sequence seq;
 
