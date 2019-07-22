@@ -13,19 +13,6 @@ MOTN::MOTN(const std::string& filepath) { read(filepath); }
 MOTN::MOTN(std::istream& stream) { read(stream); }
 MOTN::~MOTN() {}
 
-struct KeyFrameData {
-    uint16_t index;
-    uint16_t frame;
-    float time;
-    std::vector<float> _80; // pair
-    std::vector<float> _40; // single
-    std::vector<float> _20; // pair
-    std::vector<float> _10; // single
-    std::vector<float> _08; // pair
-    std::vector<float> _04; // single
-    std::vector<float> _02; // pair
-    std::vector<float> _01; // single
-};
 
 void MOTN::_read(std::istream& stream) {
     stream.read(reinterpret_cast<char*>(&header), sizeof(MOTN::Header));
@@ -80,7 +67,7 @@ void MOTN::_read(std::istream& stream) {
         bool block3EntryHalfSize = flag_1 <= 0xFF ? true : false;
 
         uint16_t index = 0;
-        std::vector<KeyFrameData> keyframes;
+        
 
         // data reading function (lambda)
         auto readData = [&]() -> void {
@@ -142,6 +129,8 @@ void MOTN::_read(std::istream& stream) {
                 keyframe.time = block3Val;
                 keyframe.index = index;
 
+                seq.numFrames = (keyframe.frame > seq.numFrames ? keyframe.frame : seq.numFrames);
+                
                 stream.seekg(block4Offset, std::ios::beg);
                 uint8_t secondCountIndex = sread<uint8_t>(stream);
                 uint8_t secondCount = countLookupTable[secondCountIndex];
@@ -226,7 +215,7 @@ void MOTN::_read(std::istream& stream) {
                     std::cout << "Misaligned Block 5 Offset!" << std::endl;
                 }
 
-                keyframes.push_back(keyframe);
+                seq.keyframes.push_back(keyframe);
 
                 std::cout << "        [" << std::to_string(keyframe.time) << "]\n";
 
@@ -293,6 +282,8 @@ void MOTN::_read(std::istream& stream) {
             if (instruction == 0) break;
             if (index == (instruction >> 9)) {
                 std::cout << "Index: " << std::to_string(index) << " (" << std::to_string(instruction & 0x07) << ")" << std::endl;
+                std::cout  << BoneName.at(IKBoneMap.at((IKBoneID)index)) << std::endl;
+                
                 shendk::Sequence seq;
 
                 if (instruction & 0x1C0) {

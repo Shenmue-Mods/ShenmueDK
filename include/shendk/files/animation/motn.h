@@ -14,6 +14,20 @@ namespace shendk {
  */
 struct MOTN : public File {
 
+    struct KeyFrameData {
+        uint16_t index;
+        uint16_t frame;
+        float time;
+        std::vector<float> _80; // pair
+        std::vector<float> _40; // single
+        std::vector<float> _20; // pair
+        std::vector<float> _10; // single
+        std::vector<float> _08; // pair
+        std::vector<float> _04; // single
+        std::vector<float> _02; // pair
+        std::vector<float> _01; // single
+    };
+
     struct Sequence {
 
         struct Offsets {
@@ -41,7 +55,11 @@ struct MOTN : public File {
         std::string name;
         Offsets offsets;
         ExtraData extraData;
-        Data data;
+        Data data;    
+
+        int numFrames = 0;
+
+        std::vector<KeyFrameData> keyframes;
     };
 
     struct Header {
@@ -67,7 +85,7 @@ struct MOTN : public File {
     std::map<float, int32_t> valFreq;
 
     std::vector<Animation> animations;
-
+    
 protected:
     virtual void _read(std::istream& stream);
     virtual void _write(std::ostream& stream);

@@ -9,9 +9,7 @@ TEST(MOTN, read_write)
     shendk::MOTN motn("H:\\UTest\\motion.bin");
 
     for (auto& seq : motn.sequences) {
-        std::cout << seq.name << std::endl;
-        std::cout << seq.flags << std::endl;
-        std::cout << seq.offsets.dataOffset << std::endl;
+        std::cout << seq.name << " @" << seq.offsets.dataOffset << "    [" << seq.numFrames << " frames]" << std::endl;
     }
 
     SUCCEED();

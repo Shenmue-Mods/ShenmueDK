@@ -320,6 +320,8 @@ enum class IKBoneID : uint8_t {
     LeftShoulder = 31,
     LeftArm = 32,
     LeftHandIKTarget = 33,
+
+    Unknown35 = 35,
     LeftHand = 36,
 
     None = 0xFF
@@ -349,6 +351,9 @@ static std::map<IKBoneID, BoneID> IKBoneMap {
     {IKBoneID::LeftArm, BoneID::LeftUpperArm},
     {IKBoneID::LeftHandIKTarget, BoneID::LeftLowerArm}, // no IK rig yet, map to lower arm
     {IKBoneID::LeftHand, BoneID::LeftHand},
+
+    {IKBoneID::Unknown0x15, BoneID::Root},
+    {IKBoneID::Unknown35, BoneID::Root},
 };
 
 enum class Interpolation {
