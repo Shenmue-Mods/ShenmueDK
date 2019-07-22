@@ -23,6 +23,7 @@ void PKF::_read(std::istream& stream) {
             return;
         }
         _stream = new imstream(decompressed, bufferSize);
+	    Compressed = true;
     } else {
         _stream->seekg(baseOffset, std::ios::beg);
     }

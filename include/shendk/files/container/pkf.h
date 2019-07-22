@@ -33,6 +33,8 @@ struct PKF : public File {
     std::vector<TEXN> textures;
     IPAC* ipac = nullptr;
 
+    bool Compressed = false;
+
 protected:
     virtual void _read(std::istream& stream);
     virtual void _write(std::ostream& stream);
