@@ -24,7 +24,7 @@ void OBJ::_read(std::istream& stream) {
 
 void OBJ::_write(std::ostream& stream) {
 
-    int objNum;
+    int objNum = 0;
     int totalPositions = 0;
     int totalNormals = 0;
     int totalUVs = 0;

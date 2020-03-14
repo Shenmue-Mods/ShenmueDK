@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <memory>
+#include <cstring>
 
 namespace shendk {
 

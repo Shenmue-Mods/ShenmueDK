@@ -3,6 +3,7 @@
 #include "shendk/files/image/stb/stb_image_wrapper.h"
 #include "shendk/files/image/stb/stb_image_write_wrapper.h"
 
+#include <cstring>
 #include <iostream>
 
 namespace shendk {

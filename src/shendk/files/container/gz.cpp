@@ -1,4 +1,5 @@
 #include "shendk/files/container/gz.h"
+#include <cstring>
 
 #if defined(_WIN32)
     #define ZLIB_WINAPI

@@ -45,6 +45,7 @@ void PKF::_read(std::istream& stream) {
     for (uint32_t i = 0; i < header.fileCount; i++) {
         if (_stream->eof()) break;
         TEXN entry(*_stream);
+        entry.pvrt.getImage()->flipVertical();
         textures.push_back(entry);
     }
 

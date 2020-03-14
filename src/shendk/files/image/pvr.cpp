@@ -232,7 +232,7 @@ bool PVR::_isValid(uint32_t signature) {
 }
 
 std::vector<char> PVR::bitmapToRawVQ(std::shared_ptr<Image> img, uint16_t codeBookSize, std::vector<char>& palette) {
-
+    return std::vector<char>();
 }
 
 }

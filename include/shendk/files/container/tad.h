@@ -27,7 +27,7 @@ struct TAD : public File {
         uint32_t identifier1;
         uint32_t identifier2;
         uint32_t pad12;
-        __time32_t unixTimestamp;
+        time_t unixTimestamp;
         uint32_t pad20;
         char renderType[4];
         uint32_t pad28;

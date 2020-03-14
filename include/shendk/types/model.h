@@ -8,7 +8,6 @@
 #include "shendk/types/vector.h"
 #include "shendk/types/matrix.h"
 #include "shendk/types/bounding_box.h"
-
 #include "shendk/files/file.h"
 #include "shendk/types/texture.h"
 
