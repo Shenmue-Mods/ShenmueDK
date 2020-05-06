@@ -64,7 +64,9 @@ else()
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/DevIL/include)
 endif()
 
-
+# bvh11
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/extern/bvh11/include)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/extern/bvh11/include)
 
 # sources and stuff
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)

@@ -23,13 +23,14 @@ inline float radiansToDegrees(float radians) {
 inline double radiansToDegrees(double radians) {
     return radians * (180.0 / M_PI);
 }
-
-inline float ushortToDegrees(uint16_t value) {
-    return static_cast<float>(value) / 65535.0f * 360.0f;
+inline float shortToRadians(int16_t Value) {
+	return static_cast<float>((Value * (M_PIf * 2) / 65536));
 }
-
 inline float shortToDegrees(int16_t value) {
-    return static_cast<float>(value) / 65535.0f * 360.0f;
+    return static_cast<float>(value) / 65536.0f * 360.0f;
+}
+inline float ushortToDegrees(uint16_t value) {
+	return static_cast<float>(value) / 65535.0f * 360.0f;
 }
 
 

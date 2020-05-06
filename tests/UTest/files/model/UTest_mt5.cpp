@@ -3,6 +3,7 @@
 #include "shendk/files/model/mt5.h"
 #include "shendk/files/model/obj.h"
 #include "shendk/files/model/dae.h"
+#include "shendk/files/animation/motn.h"
 
 namespace {
 
@@ -23,6 +24,11 @@ TEST(MT5, read_write)
 
     shendk::DAE daeClean(mt5.model);
     daeClean.write("H:\\UTest\\sin_m.mt5_clean.dae");
+
+	shendk::MOTN motnFile("H:\\UTest\\motion.bin");
+
+	shendk::DAE daeAnims(mt5.model, motnFile.animations);
+	daeAnims.write("H:\\UTest\\sin_m.dae");
 
     SUCCEED();
 }

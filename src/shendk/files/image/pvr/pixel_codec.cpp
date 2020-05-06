@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <algorithm>
+#include <cmath>
 
 #include "shendk/utils/math.h"
 

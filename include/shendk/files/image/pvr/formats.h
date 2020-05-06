@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <map>
+#include <string>
 
 namespace shendk {
 namespace pvr {
