@@ -13,23 +13,34 @@ namespace shendk {
  * @brief Shenmue animation file.
  */
 struct MOTN : public File {
+	enum FrameType {
+		PosX,
+		PosY,
+		PosZ,
 
+		RotX,
+		RotY,
+		RotZ
+	};
     struct KeyFrameData {
         uint16_t index;
         uint16_t frame;
+		FrameType type;
         float time;
-        std::vector<float> _80; // pair
-        std::vector<float> _40; // single
-        std::vector<float> _20; // pair
+
+		Vector3f position = Vector3f();
+		Vector3f rotation = Vector3f();
+        /*std::vector<float> _40; // single
         std::vector<float> _10; // single
-        std::vector<float> _08; // pair
         std::vector<float> _04; // single
-        std::vector<float> _02; // pair
         std::vector<float> _01; // single
+        std::vector<float> _80; // pair
+        std::vector<float> _20; // pair
+        std::vector<float> _08; // pair
+        std::vector<float> _02; // pair*/
     };
 
     struct Sequence {
-
         struct Offsets {
             uint32_t dataOffset;
             uint32_t extraDataOffset;
@@ -59,7 +70,7 @@ struct MOTN : public File {
 
         int numFrames = 0;
 
-        std::vector<KeyFrameData> keyframes;
+        std::vector<KeyFrame> keyframes;
     };
 
     struct Header {

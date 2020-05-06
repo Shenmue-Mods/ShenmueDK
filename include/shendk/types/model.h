@@ -366,6 +366,7 @@ static std::map<Interpolation, std::string> InterpolationString {
 };
 
 struct KeyFrame {
+	int nodeID;
     float time;
     Matrix4f transform;
     Interpolation interpolation;
