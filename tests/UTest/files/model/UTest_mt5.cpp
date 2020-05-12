@@ -23,7 +23,11 @@ TEST(MT5, read_write)
     objClean.write("H:\\UTest\\sin_m.mt5_clean.obj");
 
     shendk::DAE daeClean(mt5.model);
-    daeClean.write("H:\\UTest\\sin_m.mt5_clean.dae");
+    daeClean.write("H:\\UTest\\sin_m.mt5_clean_blender.dae");
+
+    shendk::DAE::exportForBlender = false;
+    shendk::DAE daeCleanForMax(mt5.model);
+    daeCleanForMax.write("H:\\UTest\\sin_m.mt5_clean_max.dae");
 
 	shendk::MOTN motnFile("H:\\UTest\\motion.bin");
 

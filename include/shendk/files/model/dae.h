@@ -15,6 +15,8 @@ struct DAE : public ModelFile {
     DAE(const std::string& filepath);
     ~DAE();
 
+    static bool exportForBlender = true;
+
 protected:
     virtual void _read(std::istream& stream);
     virtual void _write(std::ostream& stream);

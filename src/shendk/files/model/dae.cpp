@@ -725,35 +725,40 @@ void DAE::recursiveSkeleton(tinyxml2::XMLDocument* doc, tinyxml2::XMLElement* pa
     jointNode->SetAttribute("sid", boneName.c_str());
     jointNode->SetAttribute("type", "JOINT");
 
-    XMLElement* matrix = doc->NewElement("matrix");
-    matrix->SetAttribute("sid", "transform");
-    matrix->SetText(matrixText(node->getTransformMatrix()).c_str());
-    jointNode->InsertEndChild(matrix);
+    if (!exportForBlender) 
+    {
+        XMLElement* translate = doc->NewElement("translate");
+        translate->SetAttribute("sid", "location");
+        translate->SetText(vector3Text(node->position).c_str());
+        jointNode->InsertEndChild(translate);
 
-    /*XMLElement* translate = doc->NewElement("translate");
-    translate->SetAttribute("sid", "location");
-    translate->SetText(vector3Text(node->position).c_str());
-    jointNode->InsertEndChild(translate);
+        XMLElement* rotZ = doc->NewElement("rotate");
+        rotZ->SetAttribute("sid", "rotationZ");
+        rotZ->SetText(vector4Text(Vector4f(0.0f, 0.0f, 1.0f, node->rotation.z)).c_str());
+        jointNode->InsertEndChild(rotZ);
 
-    XMLElement* rotZ = doc->NewElement("rotate");
-    rotZ->SetAttribute("sid", "rotationZ");
-    rotZ->SetText(vector4Text(Vector4f(0.0f, 0.0f, 1.0f, node->rotation.z)).c_str());
-    jointNode->InsertEndChild(rotZ);
+        XMLElement* rotY = doc->NewElement("rotate");
+        rotY->SetAttribute("sid", "rotationY");
+        rotY->SetText(vector4Text(Vector4f(0.0f, 1.0f, 0.0f, node->rotation.y)).c_str());
+        jointNode->InsertEndChild(rotY);
 
-    XMLElement* rotY = doc->NewElement("rotate");
-    rotY->SetAttribute("sid", "rotationY");
-    rotY->SetText(vector4Text(Vector4f(0.0f, 1.0f, 0.0f, node->rotation.y)).c_str());
-    jointNode->InsertEndChild(rotY);
+        XMLElement* rotX = doc->NewElement("rotate");
+        rotX->SetAttribute("sid", "rotationX");
+        rotX->SetText(vector4Text(Vector4f(1.0f, 0.0f, 0.0f, node->rotation.x)).c_str());
+        jointNode->InsertEndChild(rotX);
 
-    XMLElement* rotX = doc->NewElement("rotate");
-    rotX->SetAttribute("sid", "rotationX");
-    rotX->SetText(vector4Text(Vector4f(1.0f, 0.0f, 0.0f, node->rotation.x)).c_str());
-    jointNode->InsertEndChild(rotX);
-
-    XMLElement* scale = doc->NewElement("scale");
-    scale->SetAttribute("sid", "scale");
-    scale->SetText(vector3Text(node->scale).c_str());
-    jointNode->InsertEndChild(scale);*/
+        XMLElement* scale = doc->NewElement("scale");
+        scale->SetAttribute("sid", "scale");
+        scale->SetText(vector3Text(node->scale).c_str());
+        jointNode->InsertEndChild(scale);
+    }
+    else 
+    {
+        XMLElement* matrix = doc->NewElement("matrix");
+        matrix->SetAttribute("sid", "transform");
+        matrix->SetText(matrixText(node->getTransformMatrix()).c_str());
+        jointNode->InsertEndChild(matrix);
+    }
 
     if (node->child) {
         recursiveSkeleton(doc, jointNode, node->child, boneNames);
