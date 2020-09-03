@@ -295,7 +295,6 @@ struct Model {
 
 enum class IKBoneID : uint8_t {
     Root = 0,
-
     Hip = 1,
 
     RightUpperLeg = 5,
@@ -308,7 +307,7 @@ enum class IKBoneID : uint8_t {
 
     Torso = 18,
     UpperTorsoIKTarget = 20,
-    Unknown0x15 = 21,
+    Neck = 21,
     HeadLookAtTarget = 23,
 
     RightShoulder = 25,
@@ -319,12 +318,42 @@ enum class IKBoneID : uint8_t {
     LeftShoulder = 31,
     LeftArm = 32,
     LeftHandIKTarget = 33,
-
-    Unknown35 = 35,
+    LeftHandIKTarget_Dupe = 35,
     LeftHand = 36,
 
     None = 0xFF
 };
+
+static std::map<IKBoneID, std::string> IKBoneNames {
+    {IKBoneID::Root, "Root"},
+    {IKBoneID::Hip, "Hip" },
+
+    {IKBoneID::RightUpperLeg, "RightUpperLeg"},
+    {IKBoneID::RightFootIKTarget, "RightFootIKTarget" },
+    {IKBoneID::RightFoot, "RightFoot"},
+
+    {IKBoneID::LeftUpperLeg, "LeftUpperLeg" },
+    {IKBoneID::LeftFootIKTarget, "LeftFootIKTarget" },
+    {IKBoneID::LeftFoot, "LeftFoot" },
+
+    {IKBoneID::Torso, "Torso" },
+    {IKBoneID::UpperTorsoIKTarget, "UpperTorsoIKTarget" },
+    {IKBoneID::Neck, "Neck" },
+    {IKBoneID::HeadLookAtTarget, "HeadLookAtTarget" },
+
+    {IKBoneID::RightShoulder, "RightShoulder" },
+    {IKBoneID::RightArm, "RightArm" },
+    {IKBoneID::RightHandIKTarget, "RightHandIKTarget"},
+    {IKBoneID::RightHand, "RightHand"},
+
+    {IKBoneID::LeftShoulder, "LeftShoulder" },
+    {IKBoneID::LeftArm, "LeftArm" },
+    {IKBoneID::LeftHandIKTarget, "LeftHandIKTarget" },
+    {IKBoneID::LeftHandIKTarget_Dupe, "LeftHandIKTarget_Dupe"},
+    {IKBoneID::LeftHand, "LeftHand"},
+    {IKBoneID::None, "None"}
+};
+
 
 static std::map<IKBoneID, BoneID> IKBoneMap {
     {IKBoneID::Root, BoneID::Root},
@@ -339,6 +368,7 @@ static std::map<IKBoneID, BoneID> IKBoneMap {
 
     {IKBoneID::Torso, BoneID::Spine},
     {IKBoneID::UpperTorsoIKTarget, BoneID::Spine}, // no IK rig yet, map to spine
+    {IKBoneID::Neck, BoneID::Head}, // no IK rig yet, map to head
     {IKBoneID::HeadLookAtTarget, BoneID::Head}, // no IK rig yet, map to head
 
     {IKBoneID::RightShoulder, BoneID::RightShoulder},
@@ -350,9 +380,7 @@ static std::map<IKBoneID, BoneID> IKBoneMap {
     {IKBoneID::LeftArm, BoneID::LeftUpperArm},
     {IKBoneID::LeftHandIKTarget, BoneID::LeftLowerArm}, // no IK rig yet, map to lower arm
     {IKBoneID::LeftHand, BoneID::LeftHand},
-
-    {IKBoneID::Unknown0x15, BoneID::Root},
-    {IKBoneID::Unknown35, BoneID::Root},
+    {IKBoneID::LeftHandIKTarget_Dupe, BoneID::Root},
 };
 
 enum class Interpolation {

@@ -5,13 +5,34 @@
 namespace shendk {
 
 void ScnDecompiler::decompile(std::istream& stream) {
+    /* read header */
+    stream.read(reinterpret_cast<char*>(&Header), sizeof(ScnDecompiler::ScnHeader));
+    if (Header.token != 0x334E4353) {
+        printf("[ShenmueDK] Invalid token! Token = 0x%X\n", Header.token);
+        return;
+    }
+    printf("Header.token = %c%c%c%c\n", Header.token & 0x0000FF, Header.token >> 8, Header.token >> 16, Header.token >> 24);
+    printf("Header.wholeSize = %d / 0x%X\n", Header.wholeSize, Header.wholeSize);
+    printf("Header.unkFlag = 0x%X\n", Header.unkFlag);
+    printf("Header.funcPtrOffset = 0x%X\n", Header.funcPtrOffset);
+    printf("Header.dataSegmentOffset = 0x%X\n", Header.dataSegmentOffset);
+    printf("Header.lastBlockOffset = 0x%X\n", Header.lastBlockOffset);
+    printf("Header.funcPtrOffset2 = 0x%X\n", Header.funcPtrOffset2);
+    printf("Header.unknownOffset = 0x%X\n", Header.unknownOffset);
+    printf("Header.entrypoint = %d / 0x%X\n", Header.entrypoint, Header.entrypoint);
+    printf("Header.lastBlockOffset_dupe = 0x%X\n", Header.lastBlockOffset_dupe);
+    printf("Header.unknown1 = 0x%X\n", Header.unknown1);
+    printf("Header.unknown2 = 0x%X\n", Header.unknown2);
+
     int32_t immediate = 0;
     uint8_t stack[128];
     uint8_t* stackPointer = &stack[0];
     int32_t EAX = 0; // return register
-
     uint8_t opcode;
-    while (!stream.eof()) {
+
+    /* decompile */
+    stream.seekg(Header.entrypoint, std::ios::beg);
+    while (stream.tellg() != Header.dataSegmentOffset) {
         std::cout << "[" << stream.tellg() << "] ";
         stream.read(reinterpret_cast<char*>(&opcode), sizeof(uint8_t));
         if (opcode & 0x80) {
