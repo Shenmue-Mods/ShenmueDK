@@ -11,6 +11,7 @@
 using namespace tinyxml2;
 
 namespace shendk {
+    bool DAE::exportForBlender = true;
 
 DAE::DAE() {}
 DAE::DAE(Model m, std::vector<Animation> a) {

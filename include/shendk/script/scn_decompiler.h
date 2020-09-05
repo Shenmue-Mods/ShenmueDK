@@ -20,7 +20,7 @@ struct ScnDecompiler {
         int unknown2;
     } Header;
 
-    void decompile(std::istream& stream);
+    void decompile(std::istream& stream, std::ostream& ostream = std::cout);
 
 };
 
