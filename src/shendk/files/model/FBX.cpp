@@ -25,4 +25,7 @@ namespace shendk {
     void FBX::_write(std::ostream& stream) {
 
     }
+    bool FBX::_isValid(uint32_t signature) {
+        return false;
+    }
 }
