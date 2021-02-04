@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 
+#include "shendk/files/model/mt7.h"
 #include "shendk/files/model/mt5.h"
 #include "shendk/files/model/obj.h"
 #include "shendk/files/model/dae.h"
@@ -42,6 +43,12 @@ namespace {
 
 TEST(MT5, read_write)
 {
+    shendk::mt7::MT7 mt7("H:\\UTest\\ryo_m.mt7");
+    shendk::OBJ obj_7(mt7.model);
+    obj_7.write("H:\\UTest\\ryo_m.mt7.obj");
+
+    system("PAUSE");
+
     shendk::MT5::cleanMeshOnLoad = false;
     shendk::MT5 mt5("H:\\UTest\\sin_m.mt5");
 
