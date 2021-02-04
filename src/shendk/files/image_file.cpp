@@ -6,7 +6,10 @@ std::shared_ptr<Image> ImageFile::getImage(uint8_t mipmap) {
     if (mipmap >= mipmaps.size()) {
         mipmap = mipmaps.size() - 1;
     }
-    return mipmaps[mipmap];
+    if (mipmaps.size()) {
+        return mipmaps[mipmap];
+    }
+    return nullptr;
 }
 
 }
