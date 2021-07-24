@@ -51,7 +51,7 @@ struct IPAC : public File {
         std::vector<char> getData() { return data; }
         void setData(std::vector<char>& _data) {
             data = _data;
-            meta.fileSize = data.size();
+            meta.fileSize = (int)data.size();
         }
 
         EntryMeta meta;
