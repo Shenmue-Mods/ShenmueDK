@@ -1,5 +1,6 @@
 #include "shendk/files/container/tad.h"
 
+
 #include "shendk/utils/murmurhash2.h"
 #include "shendk/utils/hash_db.h"
 
@@ -12,6 +13,63 @@ TAD::TAD(const std::string& filepath) {
 }
 
 TAD::~TAD() {}
+
+std::vector<char> TAD::readAsset(const std::string& tacFilepath, const std::string& assetPath)
+{
+    std::vector<char> fileBuffer;
+    if (tacFilepath.empty() || assetPath.empty())
+        return fileBuffer;
+
+    std::ifstream tadFile;
+    tadFile.open(tacFilepath, std::ios::binary);
+
+    HashDB& db = HashDB::getInstance();
+    for (const auto& entry : entries) {
+        std::string entryPath = db.getFilepath(entry.hash1, entry.hash2);
+        if (!entryPath.empty() && assetPath == entryPath)
+        {
+            fileBuffer.resize(entry.fileSize);
+
+            tadFile.seekg(entry.fileOffset);
+            tadFile.read((char*)fileBuffer.data(), entry.fileSize);
+            tadFile.close();
+
+            return fileBuffer;
+        }
+    }
+    return fileBuffer;
+}
+
+std::vector<char> TAD::openAsset(const std::string& tacFilepath, const std::string& assetPath)
+{
+    std::vector<char> result;
+
+    if (tacFilepath.empty() || assetPath.empty())
+        return result;
+
+    HashDB& db = HashDB::getInstance();
+    for (auto& entry : entries) {
+        std::string entryPath = db.getFilepath(entry.hash1, entry.hash2);
+        if (assetPath == entryPath) 
+        {
+            std::ifstream tacFile;
+            tacFile.open(tacFilepath, std::ios::binary);
+            tacFile.seekg(0, std::ios::beg);
+            if (tacFile.is_open())
+            {
+                tacFile.seekg(entry.fileOffset);
+
+                result = std::vector<char>(entry.fileSize);
+                tacFile.read(reinterpret_cast<char*>(result.data()), entry.fileSize);
+                result.resize(tacFile.gcount());
+
+                tacFile.close();
+                return result;
+            }
+        }
+    }
+    return result;
+}
 
 bool TAD::extract(const std::string& tacFilepath, const std::string& outputFolder) {
     if (!fs::exists(tacFilepath)) return false;
@@ -45,9 +103,11 @@ bool TAD::extract(const std::string& tacFilepath, const std::string& outputFolde
 }
 
 void TAD::_read(std::istream& stream) {
-    stream.read(reinterpret_cast<char*>(&header), sizeof(TAD::Header));
-    stream.seekg(4, std::ios::cur); // skip redundant file count
-    for (uint32_t i = 0; i < header.fileCount; i++) {
+    stream.read(reinterpret_cast<char*>(&header), sizeof(Header));
+    stream.seekg(4, std::ios::cur); // Skip duplicate file count..
+
+    for (int i = 0; i < header.fileCount; i++)
+    {
         TAD::Entry entry;
         stream.read(reinterpret_cast<char*>(&entry), sizeof(TAD::Entry));
         entries.push_back(entry);

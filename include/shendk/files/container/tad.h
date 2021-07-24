@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "shendk/utils/memstream.h"
+
 #include "shendk/files/file.h"
 
 namespace shendk {
@@ -10,7 +12,7 @@ namespace shendk {
  * @brief d3t indexing file for TAC container.
  */
 struct TAD : public File {
-
+public:
     struct Entry {
         uint32_t hash1;
         uint32_t hash2;
@@ -23,20 +25,25 @@ struct TAD : public File {
     };
 
     struct Header {
-        uint32_t fileType;
-        uint32_t identifier1;
-        uint32_t identifier2;
-        uint32_t pad12;
-        time_t unixTimestamp;
-        uint32_t pad20;
-        char renderType[4];
-        uint32_t pad28;
-        uint32_t headerChecksum;
-        uint32_t pad36;
-        uint32_t tacSize;
-        uint32_t pad44;
-        uint32_t fileCount;
-        uint32_t pad52;
+        unsigned int fileType;
+        unsigned int identifier1;
+        unsigned int identifier2;
+        unsigned int pad0;
+
+        unsigned int unixTimestamp;
+        unsigned int pad1;
+
+        unsigned int renderType;
+        unsigned int pad2;
+
+        unsigned int headerChecksum;
+        unsigned int pad3;
+
+        unsigned int tacSize;
+        unsigned int pad4;
+
+        unsigned int fileCount;
+        unsigned int pad5;
     };
 
     TAD();
@@ -44,10 +51,12 @@ struct TAD : public File {
     ~TAD();
 
     bool extract(const std::string& tacFilepath, const std::string& outputFolder);
+    std::vector<char> readAsset(const std::string& tacFilepath, const std::string& assetPath);
+    std::vector<char> openAsset(const std::string& tacFilepath, const std::string& assetPath);
 
     TAD::Header header;
     std::vector<TAD::Entry> entries;
-
+    
 protected:
     virtual void _read(std::istream& stream);
     virtual void _write(std::ostream& stream);
