@@ -4,6 +4,7 @@
 
 #include "shendk/utils/memstream.h"
 
+#include "shendk/utils/sharedmem.h"
 #include "shendk/files/file.h"
 
 namespace shendk {
@@ -56,6 +57,7 @@ public:
 
     TAD::Header header;
     std::vector<TAD::Entry> entries;
+    sharedmem* tac_memory = nullptr;
     
 protected:
     virtual void _read(std::istream& stream);

@@ -12,7 +12,13 @@ TAD::TAD(const std::string& filepath) {
     read(filepath);
 }
 
-TAD::~TAD() {}
+TAD::~TAD() 
+{
+    if (tac_memory) 
+    {
+        tac_memory->CloseSharedMemory();
+    }
+}
 
 std::vector<char> TAD::readAsset(const std::string& tacFilepath, const std::string& assetPath)
 {
@@ -40,31 +46,71 @@ std::vector<char> TAD::readAsset(const std::string& tacFilepath, const std::stri
     return fileBuffer;
 }
 
-std::vector<char> TAD::openAsset(const std::string& tacFilepath, const std::string& assetPath)
+std::vector<char> TAD::openAsset(const std::string& assetPath, const std::string& tacFilepath)
 {
     std::vector<char> result;
+    bool memoryMapped = false;
 
-    if (tacFilepath.empty() || assetPath.empty())
+    if (tacFilepath.empty() && assetPath.empty())
         return result;
+    if (tac_memory)
+        memoryMapped = true;
+    
+    // we can try and initialize the memory in here..
+    if (!memoryMapped) {
+        std::ifstream tacFile;
+        tacFile.open(tacFilepath, std::ios::binary);
+        tacFile.seekg(0, std::ios::beg);
+        if (tacFile.is_open()) {
+            tac_memory = new sharedmem();
+            if (tac_memory) {
+                tacFile.seekg(0, std::ios::end);
+                int size = (int)tacFile.tellg();
+                tacFile.seekg(0, std::ios::beg);
+
+                std::string name = std::filesystem::path(tacFilepath).filename().string();
+                if (tac_memory->CreateMappedMemory(name, size)) {
+                    std::vector<char> tacData = std::vector<char>(size);
+                    tacFile.read(reinterpret_cast<char*>(tacData.data()), size);
+                    tacData.resize(tacFile.gcount());
+
+                    tac_memory->WriteFileData(tacData);
+
+                    tacData.clear();
+                    memoryMapped = true;
+                }
+            }
+            tacFile.close();
+        }
+    }
 
     HashDB& db = HashDB::getInstance();
     for (auto& entry : entries) {
         std::string entryPath = db.getFilepath(entry.hash1, entry.hash2);
         if (assetPath == entryPath) 
         {
-            std::ifstream tacFile;
-            tacFile.open(tacFilepath, std::ios::binary);
-            tacFile.seekg(0, std::ios::beg);
-            if (tacFile.is_open())
+            if (!memoryMapped) 
             {
-                tacFile.seekg(entry.fileOffset);
+                std::ifstream tacFile;
+                tacFile.open(tacFilepath, std::ios::binary);
+                tacFile.seekg(0, std::ios::beg);
+                if (tacFile.is_open())
+                {
+                    tacFile.seekg(entry.fileOffset);
 
+                    result = std::vector<char>(entry.fileSize);
+                    tacFile.read(reinterpret_cast<char*>(result.data()), entry.fileSize);
+                    result.resize(tacFile.gcount());
+
+                    tacFile.close();
+                    return result;
+                }
+            }
+            else
+            {
                 result = std::vector<char>(entry.fileSize);
-                tacFile.read(reinterpret_cast<char*>(result.data()), entry.fileSize);
-                result.resize(tacFile.gcount());
-
-                tacFile.close();
-                return result;
+                std::memcpy(result.data(), (void*)(tac_memory->SharedMemoryData + entry.fileOffset), entry.fileSize);
+                result.resize(entry.fileSize);
             }
         }
     }
