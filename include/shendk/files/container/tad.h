@@ -53,7 +53,7 @@ public:
 
     bool extract(const std::string& tacFilepath, const std::string& outputFolder);
     std::vector<char> readAsset(const std::string& tacFilepath, const std::string& assetPath);
-    std::vector<char> openAsset(const std::string& tacFilepath, const std::string& assetPath);
+    std::vector<char> openAsset(const std::string& assetPath, const std::string& tacFilepath);
 
     TAD::Header header;
     std::vector<TAD::Entry> entries;
