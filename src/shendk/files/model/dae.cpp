@@ -590,7 +590,7 @@ void DAE::_write(std::ostream& stream) {
                 std::string seqInterpolationId = seqId + "-interpolation";
                 std::string seqInterpolationArrayId = seqInterpolationId + "-array";
                 std::string seqSamplerId = seqId + "-sampler";
-                int frameCount = value.frames.size();
+                int frameCount = value.keyframes.size();
 
                 XMLElement* sequenceNode = doc.NewElement("animation");
                 sequenceNode->SetAttribute("name", animation.name.c_str());
@@ -603,9 +603,10 @@ void DAE::_write(std::ostream& stream) {
                 source_time_array->SetAttribute("id", seqInputArrayId.c_str());
                 source_time_array->SetAttribute("count", frameCount);
                 ss.str(std::string());
-                for (auto& frame : value.frames) {
-                    ss << std::to_string(frame.time) << " ";
-                }
+                //for (auto& frame : value.motn) {
+                    
+                    // ss << std::to_string(frame.time) << " ";
+                //}
                 source_time_array->SetText(ss.str().c_str());
                 source_time->InsertEndChild(source_time_array);
                 XMLElement* source_time_technique = doc.NewElement("technique_common");
@@ -628,9 +629,9 @@ void DAE::_write(std::ostream& stream) {
                 source_matrix_array->SetAttribute("id", seqOutputArrayId.c_str());
                 source_matrix_array->SetAttribute("count", frameCount * 16);
                 ss.str(std::string());
-                for (auto& frame : value.frames) {
-                    ss << matrixText(frame.transform) << " ";
-                }
+                //for (auto& frame : value.motn) {
+                    //ss << matrixText(frame.transform) << " ";
+                //}
                 source_matrix_array->SetText(ss.str().c_str());
                 source_matrix->InsertEndChild(source_matrix_array);
                 XMLElement* source_matrix_technique = doc.NewElement("technique_common");
@@ -653,9 +654,9 @@ void DAE::_write(std::ostream& stream) {
                 source_interpolation_array->SetAttribute("id", seqInterpolationArrayId.c_str());
                 source_interpolation_array->SetAttribute("count", frameCount);
                 ss.str(std::string());
-                for (auto& frame : value.frames) {
-                    ss << InterpolationString[frame.interpolation] << " ";
-                }
+                //for (auto& frame : value.motn) {
+                    //ss << InterpolationString[frame.interpolation] << " ";
+                //}
                 source_interpolation_array->SetText(ss.str().c_str());
                 source_interpolation->InsertEndChild(source_interpolation_array);
                 XMLElement* source_interpolation_technique = doc.NewElement("technique_common");

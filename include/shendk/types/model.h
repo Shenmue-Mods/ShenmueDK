@@ -393,15 +393,50 @@ static std::map<Interpolation, std::string> InterpolationString {
     {Interpolation::LINEAR, "LINEAR"}
 };
 
-struct KeyFrame {
-	int nodeID;
-    float time;
-    Matrix4f transform;
-    Interpolation interpolation;
+enum Axis {
+    X, Y, Z
+};
+
+struct Easing {
+    float left = 0;
+    float right = 0;
+};
+
+struct Frame {
+    int frame_num = 0;
+    Easing easing;
+    float value = 0;
+    bool flag1 = false;			 // NOT IN STRUCT
+    bool flag2 = false;		 // NOT IN STRUCT
+};
+struct BoneKeyframes {
+    int bone = 0;
+    bool rot = false;
+
+    std::vector<Axis> axis;
+    std::map<Axis, std::vector<Frame>> keyframes = {
+        {Axis::X, std::vector<Frame>()},
+        {Axis::Y, std::vector<Frame>()},
+        {Axis::Z, std::vector<Frame>()},
+    };
 };
 
 struct Sequence {
-    std::vector<KeyFrame> frames;
+    std::string name;
+    signed int dataOfs = 0;
+    signed int extraDataOfs = 0;
+
+    struct Header {
+        short length = 0;
+        short block1Ofs = 0x0c;
+        short block2Ofs = 0;
+        short block3Ofs = 0;
+        short block4Ofs = 0;
+        short block5Ofs = 0;
+    } header;
+
+    std::vector<BoneKeyframes> keyframes;
+    signed int total_frames = 0;
 };
 
 struct Animation {

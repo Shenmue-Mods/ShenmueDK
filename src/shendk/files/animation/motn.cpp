@@ -1,12 +1,18 @@
 #include "shendk/files/animation/motn.h"
-
-#include <set>
-
 #include "shendk/utils/stream_helper.h"
 #include "shendk/utils/math.h"
 #include "shendk/types/model.h"
 
 namespace shendk {
+
+	template <class T>
+	inline void sreadAt(std::istream& stream, T& ref, size_t at = -1) {
+		auto prev = stream.tellg();
+		if (at != -1)
+			stream.seekg(at, std::ios::beg);
+		stream.read(reinterpret_cast<char*>(&ref), sizeof(T));
+		stream.seekg(prev);
+	}
 
 	MOTN::MOTN() = default;
 	MOTN::MOTN(const std::string& filepath) { read(filepath); }
@@ -14,362 +20,204 @@ namespace shendk {
 	MOTN::~MOTN() {}
 
 	void MOTN::_read(std::istream& stream) {
-		stream.read(reinterpret_cast<char*>(&header), sizeof(MOTN::Header));
 
-		// read sequence names
-		int64_t offset = 0;
-		stream.seekg(baseOffset + header.nameTableOffset, std::ios::beg);
-		for (int i = 0; i < header.animationCount(); i++) {
-			Sequence seq;
-			uint32_t stringOffset = sread<uint32_t>(stream);
-			offset = stream.tellg();
-			stream.seekg(baseOffset + stringOffset);
-			seq.name = sreadstr(stream);
-			sequences.push_back(seq);
-			stream.seekg(baseOffset + offset);
+		// Read header
+		sreadAt(stream, header.seq_table_ofs, 0x0);
+		sreadAt(stream, header.seq_name_ofs, 0x4);
+		sreadAt(stream, header.seq_data_ofs, 0x8);
+		sreadAt(stream, header.attributes, 0xc);
+		sreadAt(stream, header.filelength, 0x10);
+
+		// Read all sequence entries
+		int seq_table_ofs = header.seq_table_ofs, seq_name_ofs = header.seq_name_ofs;
+		for (int i = 0; i < sequenceCount(); ++i)
+		{
+			Sequence sequence;
+			int name_ptr = 0;
+			sreadAt(stream, sequence.dataOfs, seq_table_ofs + 0);
+			sreadAt(stream, sequence.extraDataOfs, seq_table_ofs + 4);
+			sreadAt(stream, name_ptr, seq_name_ofs);
+
+			stream.seekg(name_ptr, std::ios::beg);
+			while (stream.peek() != 0)
+				sequence.name.push_back(stream.get());
+
+			seq_table_ofs += 8;
+			seq_name_ofs += 4;
+
+			sequence.dataOfs += header.seq_data_ofs;
+			sequences.push_back(sequence);
 		}
 
-		// read sequence data offsets
-		stream.seekg(baseOffset + header.dataTableOffset, std::ios::beg);
+		// Parse all sequence data
+		for (auto& sequence : sequences) {
+			int offset = sequence.dataOfs;
 
-		for (auto& seq : sequences) {
-			seq.offsets = sread<Sequence::Offsets>(stream);
-		}
+			// Read anim header
+			sreadAt(stream, sequence.header.length, offset + 0);
+			sreadAt(stream, sequence.header.block2Ofs, offset + 0x04);
+			sreadAt(stream, sequence.header.block3Ofs, offset + 0x06);
+			sreadAt(stream, sequence.header.block4Ofs, offset + 0x08);
+			sreadAt(stream, sequence.header.block5Ofs, offset + 0x0a);
 
-		// read sequence data
-		for (auto& seq : sequences) {
+			bool block2EntryHalfSize = sequence.header.length & 0xFFFF8000 ? false : true;
+			bool block3EntryHalfSize = (sequence.header.length & 0x7FFF) <= 0xFF ? true : false;
 
-			// read extra data
-			int64_t extraDataOffset = baseOffset + seq.offsets.extraDataOffset;
-			stream.seekg(extraDataOffset, std::ios::beg);
-			seq.extraData = sread<Sequence::ExtraData>(stream);
+			// Read Block 1 - Frame Descriptions
+			offset = sequence.dataOfs + sequence.header.block1Ofs;
 
-			// read data
-			int64_t dataOffset = baseOffset + header.dataOffset + seq.offsets.dataOffset;
-			stream.seekg(dataOffset, std::ios::beg);
-			seq.data.header = sread<Sequence::Data::Header>(stream);
+			int index = 0; uint16_t instruction;
+			sreadAt(stream, instruction, offset);
+			offset += 2;
 
-			if (dataOffset == 817312) {
-				std::cout << "FIRST IN RUNTIME" << std::endl;
-			}
-
-			// init sequence offsets
-			uint32_t flag = seq.data.header.flags;
-			uint16_t flag_1 = flag & 0x7FFF;
-			int64_t block1Offset = dataOffset + sizeof(Sequence::Data::Header); // Block 1: bone and data description block
-			int64_t block2Offset = dataOffset + seq.data.header.block1Offset;   // Block 2: data/frame count block
-			int64_t block3Offset = dataOffset + seq.data.header.block2Offset;   // Block 3: frame index
-			int64_t block4Offset = dataOffset + seq.data.header.block3Offset;   // Block 4: data description (used with lookup table)
-			int64_t block5Offset = dataOffset + seq.data.header.block4Offset;   // Block 5: actual half-float data
-
-			bool block2EntryHalfSize = seq.data.header.flags & 0xFFFF8000 ? false : true;
-			bool block3EntryHalfSize = flag_1 <= 0xFF ? true : false;
-
-			uint16_t index = 0;
-			uint32_t block3Value;
-			shendk::Sequence newSeq;
-
-			// data reading function (lambda)
-			auto readData = [&](FrameType type) -> void {
-				int16_t block2Value;
-				if (block2EntryHalfSize) {
-					stream.seekg(block2Offset, std::ios::beg);
-					block2Value = sread<int8_t>(stream);
-					block2Offset += sizeof(uint8_t);
+			while ((index < 127) && instruction != 0) {
+				int  bone = instruction >> 9;
+				if (instruction & Pos_mask) {
+					BoneKeyframes frames;
+					frames.bone = bone;
+					if (instruction & PosX_msk)
+						frames.axis.push_back(Axis::X);
+					if (instruction & PosY_msk)
+						frames.axis.push_back(Axis::Y);
+					if (instruction & PosZ_msk)
+						frames.axis.push_back(Axis::Z);
+					sequence.keyframes.push_back(frames);
 				}
-				else {
-					stream.seekg(block2Offset, std::ios::beg);
-					block2Value = sread<int16_t>(stream);
-					block2Offset += sizeof(uint16_t);
-				}
-
-				// Block 3 contains the keyframe times.
-				// TODO: Find out how to map those to the actual float data.
-				if (block3EntryHalfSize) {
-					stream.seekg(block3Offset, std::ios::beg);
-					block3Value = sread<uint8_t>(stream);
-					block3Offset += block2Value;
-				}
-				else {
-					stream.seekg(block3Offset, std::ios::beg);
-					block3Value = sread<uint16_t>(stream);
-					block3Offset += block2Value * 2;
-				}
-
-				float block3Val = static_cast<float>(block3Value) * 0.033333335f; // ~0.033 = 30fps
-				std::cout << "    B3: " << std::to_string(block3Value) << " (" << std::to_string(block3Val) << ")" << std::endl;
-
-				stream.seekg(block4Offset, std::ios::beg);
-				int8_t firstCount = (block2Value + 2) >> 2;
-				if ((block2Value + 2) & 3) {
-					firstCount++;
-				}
-
-				//std::cout << "    C1: " << std::to_string(firstCount) << std::endl;
-
-				while (firstCount) {
-
-					/*uint32_t block3Value = 0;
-					if (block2Value) {
-						if (block3EntryHalfSize) {
-							stream.seekg(block3Offset, std::ios::beg);
-							block3Value = sread<uint8_t>(stream);
-							block3Offset += sizeof(uint8_t);
-						} else {
-							stream.seekg(block3Offset, std::ios::beg);
-							block3Value = sread<uint16_t>(stream);
-							block3Offset += sizeof(uint16_t);
-						}
-					}
-
-					float block3Val = static_cast<float>(block3Value) * 0.033333335f; // ~0.033 = 30fps
-					std::cout << "    B3: " << std::to_string(block3Value) << " (" << std::to_string(block3Val) << ")" << std::endl;*/
-
-					//KeyFrameData keyframe;
-					//keyframe.frame = block3Value;
-					//keyframe.type = type;
-					//seq.numFrames = (keyframe.frame > seq.numFrames ? keyframe.frame : seq.numFrames);
-
-					KeyFrame keyframe;
-					keyframe.time = block3Val;
-					keyframe.nodeID = index;
-
-					stream.seekg(block4Offset, std::ios::beg);
-					uint8_t secondCountIndex = sread<uint8_t>(stream);
-					uint8_t secondCount = countLookupTable[secondCountIndex];
-
-					Vector3f translation = Vector3f(), rotation = Vector3f();
-
-					if (secondCountIndex & 0xFF) {
-						stream.seekg(block5Offset, std::ios::beg);
-						std::cout << "      ";
-						if (secondCountIndex & 0x80) {
-							int16_t val = sread<int16_t>(stream);
-							val = sread<int16_t>(stream);
-						}
-						if (secondCountIndex & 0x40) {
-							int16_t val = sread<int16_t>(stream);
-							float valFloat = 0.f;
-
-							//printf("currPos = 0x%X \tcurrVal = 0x%X\n", (int)stream.tellg() - 2, val);
-							if (type == RotX || type == RotY || type == RotZ) {
-								//std::cout << "Raw Val: " << std::to_string(val) << std::endl;
-								valFloat = radiansToDegrees(fromHalf(val));
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case RotX:
-									rotation += Vector3f(valFloat, 0, 0);
-								case RotY:
-									rotation += Vector3f(0, valFloat, 0);
-								case RotZ:
-									rotation += Vector3f(0, 0, valFloat);
-								}
-							}
-							else {
-								valFloat = fromHalf(val);
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case PosX:
-									translation += Vector3f(valFloat, 0, 0);
-								case PosY:
-									translation += Vector3f(0, valFloat, 0);
-								case PosZ:
-									translation += Vector3f(0, 0, valFloat);
-								}
-							}
-							//keyframe._40.push_back(valFloat);
-						}
-						if (secondCountIndex & 0x20) {
-							int16_t val = sread<int16_t>(stream);
-							val = sread<int16_t>(stream);
-						}
-						if (secondCountIndex & 0x10) {
-							int16_t val = sread<int16_t>(stream);
-
-							float valFloat = 0.f;
-							//printf("currPos = 0x%X \tcurrVal = 0x%X\n", (int)stream.tellg() - 2, val);
-							if (type == RotX || type == RotY || type == RotZ) {
-								//std::cout << "Raw Val: " << std::to_string(val) << std::endl;
-								valFloat = radiansToDegrees(fromHalf(val));
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case RotX:
-									rotation += Vector3f(valFloat, 0, 0);
-								case RotY:
-									rotation += Vector3f(0, valFloat, 0);
-								case RotZ:
-									rotation += Vector3f(0, 0, valFloat);
-								}
-							}
-							else {
-								valFloat = fromHalf(val);
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case PosX:
-									translation += Vector3f(valFloat, 0, 0);
-								case PosY:
-									translation += Vector3f(0, valFloat, 0);
-								case PosZ:
-									translation += Vector3f(0, 0, valFloat);
-								}
-							}
-							//keyframe._10.push_back(valFloat);
-						}
-						if (secondCountIndex & 0x08) {
-							int16_t val = sread<int16_t>(stream);
-							val = sread<int16_t>(stream);
-						}
-						if (secondCountIndex & 0x04) {
-							int16_t val = sread<int16_t>(stream);
-							float valFloat = 0.f;
-							//printf("currPos = 0x%X \tcurrVal = 0x%X\n", (int)stream.tellg() - 2, val);
-							if (type == RotX || type == RotY || type == RotZ) {
-								//std::cout << "Raw Val: " << std::to_string(val) << std::endl;
-								valFloat = radiansToDegrees(fromHalf(val));
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case RotX:
-									rotation += Vector3f(valFloat, 0, 0);
-								case RotY:
-									rotation += Vector3f(0, valFloat, 0);
-								case RotZ:
-									rotation += Vector3f(0, 0, valFloat);
-								}
-							}
-							else {
-								valFloat = fromHalf(val);
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case PosX:
-									translation += Vector3f(valFloat, 0, 0);
-								case PosY:
-									translation += Vector3f(0, valFloat, 0);
-								case PosZ:
-									translation += Vector3f(0, 0, valFloat);
-								}
-							}
-							//keyframe._04.push_back(valFloat);
-						}
-						if (secondCountIndex & 0x02) {
-							int16_t val = sread<int16_t>(stream);
-							val = sread<int16_t>(stream);
-						}
-						if (secondCountIndex & 0x01) {
-							int16_t val = sread<int16_t>(stream);
-							float valFloat = 0.f;
-							//printf("currPos = 0x%X \tcurrVal = 0x%X\n", (int)stream.tellg() - 2, val);
-							if (type == RotX || type == RotY || type == RotZ) {
-								//std::cout << "Raw Val: " << std::to_string(val) << std::endl;
-								valFloat = radiansToDegrees(fromHalf(val));
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case RotX:
-									rotation += Vector3f(valFloat, 0, 0);
-								case RotY:
-									rotation += Vector3f(0, valFloat, 0);
-								case RotZ:
-									rotation += Vector3f(0, 0, valFloat);
-								}
-							}
-							else {
-								valFloat = fromHalf(val);
-								std::cout << std::to_string(valFloat) << ", ";
-								switch (type) {
-								case PosX:
-									translation += Vector3f(valFloat, 0, 0);
-								case PosY:
-									translation += Vector3f(0, valFloat, 0);
-								case PosZ:
-									translation += Vector3f(0, 0, valFloat);
-								}
-							}
-							//keyframe._01.push_back(valFloat);
-						}
-						std::cout << std::endl;
-					}
-					keyframe.interpolation = shendk::Interpolation::LINEAR;
-					keyframe.transform = Matrix4f::createTranslation(translation);
-					newSeq.frames.push_back(keyframe);
-
-					std::cout << "        [" << std::to_string(keyframe.time) << "]\n";
-
-					int64_t newBlock5Offset = stream.tellg();
-					block5Offset += 2 * secondCount;
-
-					firstCount--;
-					block4Offset++;
-
-					if (block5Offset != newBlock5Offset) {
-						std::cout << "Misaligned Block 5 Offset!" << std::endl;
-					}
-				}
-			};
-
-			std::cout << seq.name << " @" << std::to_string(dataOffset) << std::endl;
-
-			if (dataOffset != 956058) continue;
-
-			shendk::Animation anim;
-
-			//uint16_t index = 0;
-			int16_t instruction = sread<int16_t>(stream);
-			while (index < 127) {
-				if (instruction == 0) break;
-				if (index == (instruction >> 9)) {
-					std::cout << "Index: " << std::to_string(index) << " (" << std::to_string(instruction & 0x07) << ")" << std::endl;
-					std::cout << "Frame: " << std::to_string(block3Value) << std::endl;
-					if (IKBoneMap.find((IKBoneID)index) != IKBoneMap.end() && BoneName.find(IKBoneMap.at((IKBoneID)index)) != BoneName.end()) {
-						std::cout << BoneName.at(IKBoneMap.at((IKBoneID)index)) << std::endl;
-					}
-
-					printf("instruction = %X\n", instruction);
-					if (instruction & 0x1C0) {
-						if (instruction & 0x100) { // Translation X
-							std::cout << "  PosX" << std::endl;
-							readData(PosX);
-						}
-						if (instruction & 0x80) {  // Translation Y
-							std::cout << "  PosY" << std::endl;
-							readData(PosY);
-						}
-						if (instruction & 0x40) {  // Translation Z
-							std::cout << "  PosZ" << std::endl;
-							readData(PosZ);
-						}
-					}
-					if (instruction & 0x38) {
-						if (instruction & 0x20) { // Rotation X
-							std::cout << "  RotX" << std::endl;
-							readData(RotX);
-						}
-						if (instruction & 0x10) { // Rotation Y
-							std::cout << "  RotY" << std::endl;
-							readData(RotY);
-						}
-						if (instruction & 8) { // Rotation Z
-							std::cout << "  RotZ" << std::endl;
-							readData(RotZ);
-						}
-					}
-
-					anim.name = seq.name;
-					anim.sequences.insert({ index, newSeq });
-
-					block1Offset += sizeof(uint16_t);
-					stream.seekg(block1Offset, std::ios::beg);
-					instruction = sread<uint16_t>(stream);
+				if (instruction & Rot_mask) {
+					BoneKeyframes frames;
+					frames.bone = bone;
+					frames.rot = true;
+					if (instruction & RotX_msk)
+						frames.axis.push_back(Axis::X);
+					if (instruction & RotY_msk)
+						frames.axis.push_back(Axis::Y);
+					if (instruction & RotZ_msk)
+						frames.axis.push_back(Axis::Z);
+					sequence.keyframes.push_back(frames);
 				}
 				index++;
+				sreadAt(stream, instruction, offset);
+				offset += 2;
 			}
 
-			animations.push_back(anim);
-			if (!stream.good()) {
-				// TODO: haven't investigated why some sequences go beyond the stream yet
-				std::cout << "Stream Broke!" << std::endl;
-				stream.clear();
+			// Read Block 2 - Number of Frames
+			offset = sequence.dataOfs + sequence.header.block2Ofs;
+			for (auto& keyframe : sequence.keyframes) {
+				for (const auto& axis : keyframe.axis) {
+					auto size = 0;
+					if (block2EntryHalfSize) {
+						char sz = 0; sreadAt(stream, sz, offset); size = sz;
+						offset++;
+					}
+					else {
+						short sz = 0; sreadAt(stream, sz, offset); size = sz;
+						offset += 2;
+					}
+
+					if (size > 0)
+						keyframe.keyframes[axis] = std::vector<Frame>(size);
+				}
+			}
+
+			// Read Block 3 - Frame Times
+			offset = sequence.dataOfs + sequence.header.block3Ofs;
+			for (auto& keyframe : sequence.keyframes) {
+				for (auto& axis : keyframe.axis) {
+					for (int i = 0; i < keyframe.keyframes[axis].size(); ++i) {
+						auto frame_num = 0;
+						if (block3EntryHalfSize) {
+							char sz = 0; sreadAt(stream, sz, offset); offset++;
+							frame_num = sz;
+						}
+						else {
+							short sz = 0; sreadAt(stream, sz, offset); offset += 2;
+							frame_num = sz;
+						}
+						keyframe.keyframes[axis][i].frame_num = frame_num;
+					}
+					sequence.total_frames += keyframe.keyframes[axis].size();
+
+					Frame frm;
+					frm.frame_num = sequence.header.length - 1;
+					keyframe.keyframes[axis].push_back(frm);
+					keyframe.keyframes[axis].insert(keyframe.keyframes[axis].begin(), Frame());
+				}
+			}
+
+			// Read Block 4 - Keyframe Block Descriptions
+			offset = sequence.dataOfs + sequence.header.block4Ofs;
+			for (auto& keyframe : sequence.keyframes) {
+				for (auto& axis : keyframe.axis) {
+					int frame = 0;
+
+					while (frame < keyframe.keyframes[axis].size()) {
+						char keyframeBlockType = 0;
+						sreadAt(stream, keyframeBlockType, offset);
+						offset++;
+
+						if (keyframeBlockType & 0x80)
+							keyframe.keyframes[axis][frame].flag1 = true;
+						if (keyframeBlockType & 0x40)
+							keyframe.keyframes[axis][frame].flag2 = true;
+						frame++;
+
+						if (keyframeBlockType & 0x20)
+							keyframe.keyframes[axis][frame].flag1 = true;
+						if (keyframeBlockType & 0x10)
+							keyframe.keyframes[axis][frame].flag2 = true;
+						frame++;
+
+						if (keyframeBlockType & 0x08)
+							keyframe.keyframes[axis][frame].flag1 = true;
+						if (keyframeBlockType & 0x04)
+							keyframe.keyframes[axis][frame].flag2 = true;
+						frame++;
+
+						if (keyframeBlockType & 0x02)
+							keyframe.keyframes[axis][frame].flag1 = true;
+						if (keyframeBlockType & 0x01)
+							keyframe.keyframes[axis][frame].flag2 = true;
+						frame++;
+					}
+				}
+			}
+
+			// Read Block 5 - Floats
+			offset = sequence.dataOfs + sequence.header.block5Ofs;
+			for (auto& keyframe : sequence.keyframes) {
+				for (auto& axis : keyframe.axis) {
+					for (auto& frame : keyframe.keyframes[axis]) {
+						if (frame.flag1 && frame.flag2)
+						{
+							short a, b, c;
+							sreadAt(stream, a, offset); offset += 2;
+							sreadAt(stream, b, offset); offset += 2;
+							sreadAt(stream, c, offset); offset += 2;
+
+							frame.easing.left = fromHalf(a);
+							frame.easing.right = fromHalf(b);
+							frame.value = keyframe.rot ? radiansToDegrees(fromHalf(c)) : fromHalf(c);
+						}
+						else if (frame.flag1)
+						{
+							short a, b;
+							sreadAt(stream, a, offset); offset += 2;
+							sreadAt(stream, b, offset); offset += 2;
+
+							frame.easing.left = fromHalf(a);
+							frame.value = keyframe.rot ? radiansToDegrees(fromHalf(b)) : fromHalf(b);
+						}
+						else if (frame.flag2)
+						{
+							short a;
+							sreadAt(stream, a, offset); offset += 2;
+
+							frame.value = keyframe.rot ? radiansToDegrees(fromHalf(a)) : fromHalf(a);
+						}
+					}
+				}
 			}
 		}
-
 	}
 
 	void MOTN::_write(std::ostream& stream) {
@@ -397,4 +245,3 @@ namespace shendk {
 	}
 
 }
-

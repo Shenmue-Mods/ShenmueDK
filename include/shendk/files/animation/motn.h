@@ -8,94 +8,40 @@
 #include "shendk/types/model.h"
 
 namespace shendk {
+    constexpr uint16_t Pos_mask = 0x1C0;
+    constexpr uint16_t PosX_msk = 0x100;
+    constexpr uint16_t PosY_msk = 0x80;
+    constexpr uint16_t PosZ_msk = 0x40;
+
+    constexpr uint16_t Rot_mask = 0x38;
+    constexpr uint16_t RotX_msk = 0x20;
+    constexpr uint16_t RotY_msk = 0x10;
+    constexpr uint16_t RotZ_msk = 0x08;
+
+
 
 /**
  * @brief Shenmue animation file.
  */
 struct MOTN : public File {
-	enum FrameType {
-		PosX,
-		PosY,
-		PosZ,
-
-		RotX,
-		RotY,
-		RotZ
-	};
-    struct KeyFrameData {
-        uint16_t index;
-        uint16_t frame;
-		FrameType type;
-        float time;
-
-		Vector3f position = Vector3f();
-		Vector3f rotation = Vector3f();
-        /*std::vector<float> _40; // single
-        std::vector<float> _10; // single
-        std::vector<float> _04; // single
-        std::vector<float> _01; // single
-        std::vector<float> _80; // pair
-        std::vector<float> _20; // pair
-        std::vector<float> _08; // pair
-        std::vector<float> _02; // pair*/
-    };
-
-    struct Sequence {
-        struct Offsets {
-            uint32_t dataOffset;
-            uint32_t extraDataOffset;
-        };
-
-        struct ExtraData {
-            uint32_t data[4];
-        };
-
-        struct Data {
-
-            struct Header {
-                uint32_t flags = 0;
-                uint16_t block1Offset = 0; // array for count of keyframes
-                uint16_t block2Offset = 0; // array for keyframe type?
-                uint16_t block3Offset = 0; // array for keyframe frame?
-                uint16_t block4Offset = 0; // array of ushort degree values
-            };
-
-            Data::Header header;
-        };
-
-        std::string name;
-        Offsets offsets;
-        ExtraData extraData;
-        Data data;    
-
-        int numFrames = 0;
-
-        std::vector<KeyFrame> keyframes;
-    };
-
     struct Header {
-        uint32_t dataTableOffset;
-        uint32_t nameTableOffset;
-        uint32_t dataOffset;
-        uint32_t attributes;
-        uint32_t fileSize;
+        signed int seq_table_ofs = 0;
+        signed int seq_name_ofs = 0;
+        signed int seq_data_ofs = 0;
+        signed int attributes = 0;
+        signed int filelength = 0;
+    } header;
 
-        uint16_t animationCount() {
-            return (attributes & 0x0FFF) - 1;
-        }
-    };
+    uint16_t sequenceCount() {
+        return (header.attributes & 0x0FFF) - 1;
+    }
+    std::vector<Sequence> sequences;
 
     MOTN();
     MOTN(const std::string& filepath);
     MOTN(std::istream& stream);
 
     virtual ~MOTN();
-
-    MOTN::Header header;
-    std::vector<Sequence> sequences;
-    std::map<float, int32_t> valFreq;
-
-    std::vector<Animation> animations;
     
 protected:
     virtual void _read(std::istream& stream);
