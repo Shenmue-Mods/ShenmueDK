@@ -36,34 +36,34 @@ void MT5::_read(std::istream& stream) {
     while(stream.tellg() < endOfFile - sizeof(Node::Header)) {
         nodeOffset = stream.tellg();
         stream.read(reinterpret_cast<char*>(&nodeHeader), sizeof(Node::Header));
-        if (nodeHeader.signature == 0x44584554) { //TEXD
+        if (nodeHeader.signature == MT5_TEXD) { //TEXD
             stream.seekg(nodeOffset, std::ios::beg);
             if (!texd) {
                 texd = new mt5::TEXD(stream);
             } else {
                 throw new std::runtime_error("TEXD node already exists!");
             }
-        } else if (nodeHeader.signature == 0x454D414E) { //NAME
+        } else if (nodeHeader.signature == MT5_NAME) { //NAME
             stream.seekg(nodeOffset, std::ios::beg);
             if (!name) {
                 name = new mt5::NAME(stream);
             } else {
                 throw new std::runtime_error("NAME node already exists!");
             }
-        } else if (nodeHeader.signature == 0x4C584554) { //TEXL
+        } else if (nodeHeader.signature == MT5_TEXL) { //TEXL
             stream.seekg(nodeOffset, std::ios::beg);
             if (!texl) {
                 texl = new mt5::TEXL(stream);
             } else {
                 throw new std::runtime_error("TEXL node already exists!");
             }
-        } else if (nodeHeader.signature == 0x4C525450) { //PTRL
+        } else if (nodeHeader.signature == MT5_PTRL) { //PTRL
             if (!ptrl) {
                 ptrl = new mt5::PTRL(stream);
             } else {
                 throw new std::runtime_error("PTRL node already exists!");
             }
-        } else if (nodeHeader.signature == 0x4E584554) { // TEXN
+        } else if (nodeHeader.signature == MT5_TEXN) { // TEXN
             stream.seekg(nodeOffset, std::ios::beg);
             TEXN texn(stream);
             texnEntries.push_back(texn);
@@ -102,7 +102,7 @@ void MT5::_write(std::ostream& stream) {
 }
 
 bool MT5::_isValid(uint32_t signature) {
-    if (this->signature != signature)
+    if (this->signature != signature && signature != MT5_HM5M)
         return false;
     return true;
 }

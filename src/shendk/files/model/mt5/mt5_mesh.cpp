@@ -1,6 +1,7 @@
 #include "shendk/files/model/mt5/mt5_mesh.h"
 
 #include <iostream>
+#include <stdexcept>
 
 namespace shendk {
 namespace mt5 {
@@ -21,16 +22,21 @@ void MT5Mesh::read(std::istream& stream) {
     }
 
     stream.read(reinterpret_cast<char*>(&header), sizeof(MT5Mesh::Header));
+    if (!stream || header.vertexCount < 0)
+        throw std::runtime_error("Invalid MT5 mesh header");
     node->center = Vector3f(header.centerX, header.centerY, header.centerZ);
     node->radius = header.radius;
     vertexCount = header.vertexCount;
 
-    stream.seekg(header.verticesOffset, std::ios::beg);
+    const int64_t base = static_cast<MT5Node *>(node)->sourceBaseOffset;
+    stream.seekg(base + header.verticesOffset, std::ios::beg);
     for (int i = 0; i < header.vertexCount; i++) {
         Vector3f pos;
         Vector3f norm;
         stream.read(reinterpret_cast<char*>(&pos), sizeof(Vector3f));
         stream.read(reinterpret_cast<char*>(&norm), sizeof(Vector3f));
+        if (!stream)
+            throw std::runtime_error("Truncated MT5 vertices");
         node->model->vertexBuffer.positions.push_back(pos);
         node->model->vertexBuffer.normals.push_back(norm);
         Vector3f t_pos = pos.transformPosition(node->getTransformMatrix());
@@ -43,20 +49,25 @@ void MT5Mesh::read(std::istream& stream) {
     }
 
     int64_t instructionOffset;
-    stream.seekg(header.facesOffset, std::ios::beg);
+    stream.seekg(base + header.facesOffset, std::ios::beg);
     while (!stream.eof()) {
         InstructionType stripType;
         instructionOffset = stream.tellg();
         stream.read(reinterpret_cast<char*>(&stripType), sizeof(uint16_t));
+        if (!stream)
+            throw std::runtime_error("Truncated MT5 command stream");
         stream.seekg(instructionOffset, std::ios::beg);
 
-        if (stripType == InstructionType::End_0080) { break; }
+        if (stripType == InstructionType::End_0080 || stripType == InstructionType::Skip_FFFF) { break; }
 
         switch(stripType) {
             case InstructionType::Zero_0000:
                 instructions.push_back(std::shared_ptr<Instruction>(new InBasic(stream)));
                 continue;
-            case InstructionType::Skip_FFFF:
+            case InstructionType::Metadata_0C00:
+            case InstructionType::Metadata_0D00:
+            case InstructionType::Metadata_1500:
+            case InstructionType::Metadata_1D00:
                 instructions.push_back(std::shared_ptr<Instruction>(new InBasic(stream)));
                 continue;
 

@@ -12,9 +12,9 @@ struct MT5Node : public ModelNode {
     struct Data {
         uint32_t id;
         uint32_t meshOffset;
-        uint32_t rotX; // degX = rotX / 0xFFFF * 360.0f
-        uint32_t rotY; // degY = rotY / 0xFFFF * 360.0f
-        uint32_t rotZ; // degZ = rotZ / 0xFFFF * 360.0f
+        int32_t rotX;
+        int32_t rotY;
+        int32_t rotZ;
         float sclX;
         float sclY;
         float sclZ;
@@ -36,6 +36,7 @@ struct MT5Node : public ModelNode {
     void write(std::ostream& stream);
 
     MT5Node::Data data;
+    int64_t sourceBaseOffset = 0;
 };
 
 }

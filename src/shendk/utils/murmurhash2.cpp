@@ -1,50 +1,46 @@
 #include "shendk/utils/murmurhash2.h"
+#include <cstddef>
+#include <cstring>
 
 #include <algorithm>
 
 namespace shendk {
 
+std::uint32_t HashData(const void *source, std::uint32_t size) {
+    if (!source && size)
+        return 0;
+    const std::byte *const data = static_cast<const std::byte *>(source);
+    constexpr std::uint32_t multiplier = 0x5bd1e995;
+    std::uint32_t hash = (size + size / 0xffffffffU) ^ 0x066ee5d0U;
+    std::uint32_t offset = 0;
+    while (size - offset >= 4) {
+        std::uint32_t word;
+        std::memcpy(&word, data + offset, sizeof(word));
+        word *= multiplier;
+        word ^= word >> 24;
+        word *= multiplier;
+        hash = hash * multiplier ^ word;
+        offset += 4;
+    }
+    switch (size - offset) {
+    case 3:
+        hash ^= std::to_integer<std::uint32_t>(data[offset + 2]) << 16;
+        [[fallthrough]];
+    case 2:
+        hash ^= std::to_integer<std::uint32_t>(data[offset + 1]) << 8;
+        [[fallthrough]];
+    case 1:
+        hash = multiplier * (hash ^ std::to_integer<std::uint32_t>(data[offset]));
+        break;
+    default:
+        break;
+    }
+    hash = multiplier * (hash ^ (hash >> 13));
+    return hash ^ (hash >> 15);
+}
+
 uint32_t MurmurHash2::hashData(const uint8_t* data, uint32_t length) {
-    uint32_t hash = (length / 0xFFFFFFFF + length) ^ m_initializationSeed;
-    uint32_t m = m_multiplier;
-    int r = m_rotationAmount;
-
-    uint64_t lengthRemaining = length + length / 4 * 0xfffffffffffffffc;
-
-    if (length >= 4)
-    {
-        for (int i = 0; i < length; i += 4)
-        {
-            if (i / 4 >= length / 4) break;
-            uint32_t ecx = *(reinterpret_cast<const uint32_t*>(data + i)) * m;
-            hash = hash * m ^ (ecx >> r ^ ecx) * m;
-        }
-    }
-
-    if (lengthRemaining > 0)
-    {
-        uint8_t buffer[4];
-        if (lengthRemaining == 1)
-        {
-            buffer[0] = data[length - 1];
-        }
-        else if (lengthRemaining == 2)
-        {
-            buffer[0] = data[length - 2];
-            buffer[1] = data[length - 1];
-        }
-        else if (lengthRemaining == 3)
-        {
-            buffer[0] = data[length - 3];
-            buffer[1] = data[length - 2];
-            buffer[2] = data[length - 1];
-        }
-        hash = (hash ^ *(reinterpret_cast<uint32_t*>(&buffer))) * m;
-    }
-
-    uint32_t edx = (hash >> 0x0D ^ hash) * m;
-    hash = edx >> 0x0F ^ edx;
-    return hash;
+    return HashData(data, length);
 }
 
 uint32_t MurmurHash2::hashFilenamePlain(std::string filename, bool toLower) {

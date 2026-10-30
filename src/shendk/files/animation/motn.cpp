@@ -1,247 +1,137 @@
 #include "shendk/files/animation/motn.h"
-#include "shendk/utils/stream_helper.h"
+#include "shendk/files/animation/motn_reader.h"
 #include "shendk/utils/math.h"
-#include "shendk/types/model.h"
+
+#include <cstring>
+#include <stdexcept>
 
 namespace shendk {
 
-	template <class T>
-	inline void sreadAt(std::istream& stream, T& ref, size_t at = -1) {
-		auto prev = stream.tellg();
-		if (at != -1)
-			stream.seekg(at, std::ios::beg);
-		stream.read(reinterpret_cast<char*>(&ref), sizeof(T));
-		stream.seekg(prev);
-	}
+MOTN::MOTN() = default;
+MOTN::MOTN(const std::string &filepath) { read(filepath); }
+MOTN::MOTN(std::istream &stream) { read(stream); }
+MOTN::~MOTN() = default;
 
-	MOTN::MOTN() = default;
-	MOTN::MOTN(const std::string& filepath) { read(filepath); }
-	MOTN::MOTN(std::istream& stream) { read(stream); }
-	MOTN::~MOTN() {}
-
-	void MOTN::_read(std::istream& stream) {
-
-		// Read header
-		sreadAt(stream, header.seq_table_ofs, 0x0);
-		sreadAt(stream, header.seq_name_ofs, 0x4);
-		sreadAt(stream, header.seq_data_ofs, 0x8);
-		sreadAt(stream, header.attributes, 0xc);
-		sreadAt(stream, header.filelength, 0x10);
-
-		// Read all sequence entries
-		int seq_table_ofs = header.seq_table_ofs, seq_name_ofs = header.seq_name_ofs;
-		for (int i = 0; i < sequenceCount(); ++i)
-		{
-			Sequence sequence;
-			int name_ptr = 0;
-			sreadAt(stream, sequence.dataOfs, seq_table_ofs + 0);
-			sreadAt(stream, sequence.extraDataOfs, seq_table_ofs + 4);
-			sreadAt(stream, name_ptr, seq_name_ofs);
-
-			stream.seekg(name_ptr, std::ios::beg);
-			while (stream.peek() != 0)
-				sequence.name.push_back(stream.get());
-
-			seq_table_ofs += 8;
-			seq_name_ofs += 4;
-
-			sequence.dataOfs += header.seq_data_ofs;
-			sequences.push_back(sequence);
-		}
-
-		// Parse all sequence data
-		for (auto& sequence : sequences) {
-			int offset = sequence.dataOfs;
-
-			// Read anim header
-			sreadAt(stream, sequence.header.length, offset + 0);
-			sreadAt(stream, sequence.header.block2Ofs, offset + 0x04);
-			sreadAt(stream, sequence.header.block3Ofs, offset + 0x06);
-			sreadAt(stream, sequence.header.block4Ofs, offset + 0x08);
-			sreadAt(stream, sequence.header.block5Ofs, offset + 0x0a);
-
-			bool block2EntryHalfSize = sequence.header.length & 0xFFFF8000 ? false : true;
-			bool block3EntryHalfSize = (sequence.header.length & 0x7FFF) <= 0xFF ? true : false;
-
-			// Read Block 1 - Frame Descriptions
-			offset = sequence.dataOfs + sequence.header.block1Ofs;
-
-			int index = 0; uint16_t instruction;
-			sreadAt(stream, instruction, offset);
-			offset += 2;
-
-			while ((index < 127) && instruction != 0) {
-				int  bone = instruction >> 9;
-				if (instruction & Pos_mask) {
-					BoneKeyframes frames;
-					frames.bone = bone;
-					if (instruction & PosX_msk)
-						frames.axis.push_back(Axis::X);
-					if (instruction & PosY_msk)
-						frames.axis.push_back(Axis::Y);
-					if (instruction & PosZ_msk)
-						frames.axis.push_back(Axis::Z);
-					sequence.keyframes.push_back(frames);
-				}
-				if (instruction & Rot_mask) {
-					BoneKeyframes frames;
-					frames.bone = bone;
-					frames.rot = true;
-					if (instruction & RotX_msk)
-						frames.axis.push_back(Axis::X);
-					if (instruction & RotY_msk)
-						frames.axis.push_back(Axis::Y);
-					if (instruction & RotZ_msk)
-						frames.axis.push_back(Axis::Z);
-					sequence.keyframes.push_back(frames);
-				}
-				index++;
-				sreadAt(stream, instruction, offset);
-				offset += 2;
-			}
-
-			// Read Block 2 - Number of Frames
-			offset = sequence.dataOfs + sequence.header.block2Ofs;
-			for (auto& keyframe : sequence.keyframes) {
-				for (const auto& axis : keyframe.axis) {
-					auto size = 0;
-					if (block2EntryHalfSize) {
-						char sz = 0; sreadAt(stream, sz, offset); size = sz;
-						offset++;
-					}
-					else {
-						short sz = 0; sreadAt(stream, sz, offset); size = sz;
-						offset += 2;
-					}
-
-					if (size > 0)
-						keyframe.keyframes[axis] = std::vector<Frame>(size);
-				}
-			}
-
-			// Read Block 3 - Frame Times
-			offset = sequence.dataOfs + sequence.header.block3Ofs;
-			for (auto& keyframe : sequence.keyframes) {
-				for (auto& axis : keyframe.axis) {
-					for (int i = 0; i < keyframe.keyframes[axis].size(); ++i) {
-						auto frame_num = 0;
-						if (block3EntryHalfSize) {
-							char sz = 0; sreadAt(stream, sz, offset); offset++;
-							frame_num = sz;
-						}
-						else {
-							short sz = 0; sreadAt(stream, sz, offset); offset += 2;
-							frame_num = sz;
-						}
-						keyframe.keyframes[axis][i].frame_num = frame_num;
-					}
-					sequence.total_frames += keyframe.keyframes[axis].size();
-
-					Frame frm;
-					frm.frame_num = sequence.header.length - 1;
-					keyframe.keyframes[axis].push_back(frm);
-					keyframe.keyframes[axis].insert(keyframe.keyframes[axis].begin(), Frame());
-				}
-			}
-
-			// Read Block 4 - Keyframe Block Descriptions
-			offset = sequence.dataOfs + sequence.header.block4Ofs;
-			for (auto& keyframe : sequence.keyframes) {
-				for (auto& axis : keyframe.axis) {
-					int frame = 0;
-
-					while (frame < keyframe.keyframes[axis].size()) {
-						char keyframeBlockType = 0;
-						sreadAt(stream, keyframeBlockType, offset);
-						offset++;
-
-						if (keyframeBlockType & 0x80)
-							keyframe.keyframes[axis][frame].flag1 = true;
-						if (keyframeBlockType & 0x40)
-							keyframe.keyframes[axis][frame].flag2 = true;
-						frame++;
-
-						if (keyframeBlockType & 0x20)
-							keyframe.keyframes[axis][frame].flag1 = true;
-						if (keyframeBlockType & 0x10)
-							keyframe.keyframes[axis][frame].flag2 = true;
-						frame++;
-
-						if (keyframeBlockType & 0x08)
-							keyframe.keyframes[axis][frame].flag1 = true;
-						if (keyframeBlockType & 0x04)
-							keyframe.keyframes[axis][frame].flag2 = true;
-						frame++;
-
-						if (keyframeBlockType & 0x02)
-							keyframe.keyframes[axis][frame].flag1 = true;
-						if (keyframeBlockType & 0x01)
-							keyframe.keyframes[axis][frame].flag2 = true;
-						frame++;
-					}
-				}
-			}
-
-			// Read Block 5 - Floats
-			offset = sequence.dataOfs + sequence.header.block5Ofs;
-			for (auto& keyframe : sequence.keyframes) {
-				for (auto& axis : keyframe.axis) {
-					for (auto& frame : keyframe.keyframes[axis]) {
-						if (frame.flag1 && frame.flag2)
-						{
-							short a, b, c;
-							sreadAt(stream, a, offset); offset += 2;
-							sreadAt(stream, b, offset); offset += 2;
-							sreadAt(stream, c, offset); offset += 2;
-
-							frame.easing.left = fromHalf(a);
-							frame.easing.right = fromHalf(b);
-							frame.value = keyframe.rot ? radiansToDegrees(fromHalf(c)) : fromHalf(c);
-						}
-						else if (frame.flag1)
-						{
-							short a, b;
-							sreadAt(stream, a, offset); offset += 2;
-							sreadAt(stream, b, offset); offset += 2;
-
-							frame.easing.left = fromHalf(a);
-							frame.value = keyframe.rot ? radiansToDegrees(fromHalf(b)) : fromHalf(b);
-						}
-						else if (frame.flag2)
-						{
-							short a;
-							sreadAt(stream, a, offset); offset += 2;
-
-							frame.value = keyframe.rot ? radiansToDegrees(fromHalf(a)) : fromHalf(a);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	void MOTN::_write(std::ostream& stream) {
-
-	}
-
-	bool MOTN::_isValid(uint32_t signature) {
-		return false;
-	}
-
-
-	uint8_t calcCountLookupTable(uint8_t index) {
-		// just to show that the lookup table index actually is just an flag/mask byte.
-		// for performance reasons this was put into an lookup table for fast reading of motn.
-		uint8_t result = 0;
-		result += (index & 0x80) ? 2 : 0;
-		result += (index & 0x40) ? 1 : 0;
-		result += (index & 0x20) ? 2 : 0;
-		result += (index & 0x10) ? 1 : 0;
-		result += (index & 0x08) ? 2 : 0;
-		result += (index & 0x04) ? 1 : 0;
-		result += (index & 0x02) ? 2 : 0;
-		result += (index & 0x01) ? 1 : 0;
-		return result;
-	}
-
+void MOTN::_read(std::istream &stream) {
+    sequences.clear();
+    stream.seekg(0, std::ios::end);
+    const std::streamoff end = stream.tellg();
+    if (baseOffset < 0 || end < baseOffset)
+        throw std::runtime_error("Invalid MOTN input range");
+    std::vector<std::byte> storage(static_cast<size_t>(end - baseOffset));
+    stream.seekg(baseOffset, std::ios::beg);
+    stream.read(reinterpret_cast<char *>(storage.data()), static_cast<std::streamsize>(storage.size()));
+    shendk::Bytes bytes(storage);
+    shendk::MotnBankHeader bank;
+    if (!stream || !shendk::ReadMotnBankHeader(bytes, bank))
+        throw std::runtime_error("Invalid MOTN bank header");
+    header.seq_table_ofs = static_cast<int32_t>(bank.sequenceTableOffset);
+    header.seq_name_ofs = static_cast<int32_t>(bank.sequenceNameOffset);
+    header.seq_data_ofs = static_cast<int32_t>(bank.sequenceDataOffset);
+    header.attributes = static_cast<int32_t>(bank.attributes);
+    header.filelength = static_cast<int32_t>(bank.fileSize);
+    if (bank.fileSize > bytes.size())
+        throw std::runtime_error("Truncated MOTN bank");
+    if (bank.fileSize >= sizeof(bank))
+        bytes = bytes.first(bank.fileSize);
+    if (bank.sequenceNameOffset < bank.sequenceTableOffset ||
+        sequenceCount() > (bank.sequenceNameOffset - bank.sequenceTableOffset) / 8)
+        throw std::runtime_error("Invalid MOTN sequence table");
+    for (uint32_t index = 0; index < sequenceCount(); ++index) {
+        shendk::Bytes payload;
+        std::string_view name;
+        shendk::S1MotnHeader animation;
+        if (!shendk::ReadMotnPayload(bytes, bank, index, false, payload) || !shendk::ReadMotnName(bytes, bank, index, name) ||
+            !shendk::ReadS1MotnHeader(payload, animation))
+            throw std::runtime_error("Invalid MOTN sequence");
+        shendk::S2MotnHeader s2;
+        if (shendk::ReadS2MotnHeader(payload, s2) && shendk::DecodeMotnFloat(s2.version) > 1.18f && shendk::DecodeMotnFloat(s2.version) < 1.22f)
+            throw std::runtime_error("S2 MOTN uses native sequence/channel views, not the S1 export representation");
+        Sequence sequence;
+        sequence.name = std::string(name);
+        sequence.dataOfs = static_cast<int>(payload.data() - bytes.data());
+        std::memcpy(&sequence.extraDataOfs, bytes.data() + bank.sequenceTableOffset + index * 8 + 4, sizeof(uint32_t));
+        sequence.header.length = animation.attribute & 0x7fffU;
+        sequence.header.attributes = animation.attribute;
+        sequence.header.sourceRig = animation.sourceRig;
+        sequence.header.block2Ofs = animation.block2Offset;
+        sequence.header.block3Ofs = animation.block3Offset;
+        sequence.header.block4Ofs = animation.block4Offset;
+        sequence.header.block5Ofs = animation.block5Offset;
+        if (animation.sourceRig & 0x8000U) {
+            sequences.push_back(std::move(sequence));
+            continue;
+        }
+        shendk::S1MotnChannelCursor cursor;
+        if (!shendk::OpenS1MotnChannels(payload, animation, cursor))
+            throw std::runtime_error("Invalid MOTN channel offsets");
+        size_t instructionOffset = sizeof(animation);
+        for (uint32_t instructionIndex = 0; instructionIndex < 127; ++instructionIndex) {
+            uint16_t instruction;
+            if (!shendk::Contains(payload, instructionOffset, sizeof(instruction)))
+                throw std::runtime_error("Truncated MOTN instruction list");
+            std::memcpy(&instruction, payload.data() + instructionOffset, sizeof(instruction));
+            instructionOffset += sizeof(instruction);
+            if (!instruction)
+                break;
+            for (uint32_t group = 0; group < 2; ++group) {
+                const uint16_t mask = group ? Rot_mask : Pos_mask;
+                if (!(instruction & mask))
+                    continue;
+                BoneKeyframes bone;
+                bone.bone = instruction >> 9;
+                bone.rot = group != 0;
+                const uint16_t masks[3] = {static_cast<uint16_t>(group ? RotX_msk : PosX_msk),
+                    static_cast<uint16_t>(group ? RotY_msk : PosY_msk), static_cast<uint16_t>(group ? RotZ_msk : PosZ_msk)};
+                for (uint32_t axisIndex = 0; axisIndex < 3; ++axisIndex) {
+                    if (!(instruction & masks[axisIndex]))
+                        continue;
+                    const Axis axis = static_cast<Axis>(axisIndex);
+                    bone.axis.push_back(axis);
+                    shendk::S1MotnChannelView channel;
+                    if (!shendk::NextS1MotnChannel(cursor, channel) || channel.keyCount < 2)
+                        throw std::runtime_error("Invalid MOTN channel");
+                    std::vector<Frame> &frames = bone.keyframes[axis];
+                    frames.resize(channel.keyCount);
+                    sequence.total_frames += static_cast<int>(channel.keyCount - 2);
+                    for (uint32_t keyIndex = 0; keyIndex < channel.keyCount; ++keyIndex) {
+                        Frame &frame = frames[keyIndex];
+                        if (keyIndex == channel.keyCount - 1) {
+                            frame.frame_num = static_cast<int>(sequence.header.length) - 1;
+                        } else if (keyIndex) {
+                            if (channel.wideFrames) {
+                                uint16_t time;
+                                std::memcpy(&time, channel.frames.data() + (keyIndex - 1) * 2, sizeof(time));
+                                frame.frame_num = time;
+                            } else {
+                                frame.frame_num = std::to_integer<uint8_t>(channel.frames[keyIndex - 1]);
+                            }
+                        }
+                        shendk::S1MotnKey key;
+                        if (!shendk::ReadS1MotnKey(channel, keyIndex, key))
+                            throw std::runtime_error("Truncated MOTN key");
+                        const uint8_t descriptor = std::to_integer<uint8_t>(channel.descriptors[keyIndex / 4]);
+                        const uint32_t type = (descriptor >> (6U - (keyIndex & 3U) * 2U)) & 3U;
+                        frame.flag1 = (type & 2U) != 0;
+                        frame.flag2 = (type & 1U) != 0;
+                        frame.easing.left = fromHalf(key.leftSlope);
+                        frame.easing.right = fromHalf(key.rightSlope);
+                        const float value = fromHalf(key.value);
+                        frame.value = bone.rot ? radiansToDegrees(value) : value;
+                    }
+                }
+                sequence.keyframes.push_back(std::move(bone));
+            }
+        }
+        sequences.push_back(std::move(sequence));
+    }
 }
+
+void MOTN::_write(std::ostream &) { throw std::runtime_error("MOTN writing is not implemented"); }
+bool MOTN::_isValid(uint32_t) { return false; }
+
+uint8_t MOTN::calcCountLookupTable(uint8_t index) {
+    return static_cast<uint8_t>(((index >> 6U) & 3U) + ((index >> 4U) & 3U) + ((index >> 2U) & 3U) + (index & 3U));
+}
+
+} // namespace shendk

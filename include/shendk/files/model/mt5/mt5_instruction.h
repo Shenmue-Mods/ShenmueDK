@@ -24,6 +24,8 @@ enum class InstructionType : uint16_t
     Texture_0900 = 0x0009,      // diffuse texture
     Unknown1_0A00 = 0x000A,
     UvSize_0B00 = 0x000B,       // uv size
+    Metadata_0C00 = 0x000C,
+    Metadata_0D00 = 0x000D,
     Unknown2_0E00 = 0x000E,
     Unknown2_0F00 = 0x000F,
     Strip_1000 = 0x0010,        // Pos, Norm
@@ -31,13 +33,15 @@ enum class InstructionType : uint16_t
     Strip_1200 = 0x0012,        // Pos, Norm, Color
     Strip_1300 = 0x0013,        // Pos, Norm
     Strip_1400 = 0x0014,        // Pos, Norm, UV, Color
+    Metadata_1500 = 0x0015,
     Strip_1800 = 0x0018,        // Pos, Norm
     Strip_1900 = 0x0019,        // Pos, Norm, UV
     Strip_1A00 = 0x001A,        // Pos, Norm, Color
     Strip_1B00 = 0x001B,        // Pos, Norm
     Strip_1C00 = 0x001C,        // Pos, Norm, UV, Color
+    Metadata_1D00 = 0x001D,
     End_0080 = 0x8000,          // End of mesh
-    Skip_FFFF = 0xFFFF,         // Skip to next instruction
+    Skip_FFFF = 0xFFFF,
 };
 
 struct Instruction {
@@ -117,7 +121,7 @@ struct InUvSize : public Instruction {
     InUvSize(std::istream& stream);
     virtual ~InUvSize();
 
-    uint16_t uvSize = 0;
+    uint16_t uvSize = 256;
 
 protected:
     virtual void _read(std::istream& stream);

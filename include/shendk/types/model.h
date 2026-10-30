@@ -427,12 +427,14 @@ struct Sequence {
     signed int extraDataOfs = 0;
 
     struct Header {
-        short length = 0;
+        uint16_t length = 0;
         short block1Ofs = 0x0c;
         short block2Ofs = 0;
         short block3Ofs = 0;
         short block4Ofs = 0;
         short block5Ofs = 0;
+        uint16_t attributes = 0;
+        uint16_t sourceRig = 0;
     } header;
 
     std::vector<BoneKeyframes> keyframes;

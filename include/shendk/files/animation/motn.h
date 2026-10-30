@@ -33,7 +33,8 @@ struct MOTN : public File {
     } header;
 
     uint16_t sequenceCount() {
-        return (header.attributes & 0x0FFF) - 1;
+        const uint16_t count = static_cast<uint16_t>(header.attributes & 0x0FFF);
+        return count ? static_cast<uint16_t>(count - 1) : 0;
     }
     std::vector<Sequence> sequences;
 

@@ -20,7 +20,7 @@ bool HashDB::initialize(const std::string& filepath) {
         return false;
     }
     std::lock_guard lock(m_mutex);
-    m_entries.empty();
+    m_entries.clear();
     for (auto& entry : node) {
         HashDB::Entry newEntry;
         newEntry.hash1 = entry["Hash"].asUInt();

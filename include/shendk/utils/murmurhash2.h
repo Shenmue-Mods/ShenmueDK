@@ -5,6 +5,8 @@
 
 namespace shendk {
 
+uint32_t HashData(const void *data, uint32_t size);
+
 struct MurmurHash2 {
 
     static uint32_t hashData(const uint8_t* data, uint32_t length);

@@ -1,6 +1,8 @@
 #include "shendk/files/model/mt5/mt5_instruction.h"
 
 #include "shendk/files/model/mt5/mt5_mesh.h"
+#include "shendk/files/model/mt5_reader.h"
+#include <stdexcept>
 
 namespace shendk {
 namespace mt5 {
@@ -13,6 +15,8 @@ Instruction::~Instruction() {}
 void Instruction::read(std::istream& stream) {
     stream.read(reinterpret_cast<char*>(&type), sizeof(uint16_t));
     _read(stream);
+    if (!stream)
+        throw std::runtime_error("Truncated MT5 command");
 }
 
 void Instruction::write(std::ostream& stream) {
@@ -37,7 +41,8 @@ InAttributes::~InAttributes() {}
 void InAttributes::_read(std::istream& stream) {
     stream.read(reinterpret_cast<char*>(&size), sizeof(uint16_t));
     data.resize(size);
-    stream.read(reinterpret_cast<char*>(&data[0]), size);
+    if (size)
+        stream.read(reinterpret_cast<char*>(data.data()), size);
 }
 
 void InAttributes::_write(std::ostream& stream) {
@@ -153,6 +158,9 @@ void InStrip::_read(std::istream& stream) {
 
         int16_t stripLength = 0;
         stream.read(reinterpret_cast<char*>(&stripLength), sizeof(int16_t));
+        const bool emit = stripLength < 0;
+        if (stripLength == INT16_MIN)
+            throw std::runtime_error("Invalid MT5 strip length");
         if (stripLength < 0) {
             stripLength = -stripLength;
         }
@@ -173,23 +181,8 @@ void InStrip::_read(std::istream& stream) {
                 uint16_t u,v;
                 stream.read(reinterpret_cast<char*>(&u), sizeof(uint16_t));
                 stream.read(reinterpret_cast<char*>(&v), sizeof(uint16_t));
-                double texU = u;
-                double texV = v;
-                if (isUVH) {
-                    texU = texU / 65536.0;
-                    texV = texV / 65536.0;
-                } else {
-                    if (texU < 61440.0) {
-                        texU /= uvSize;
-                    } else {
-                        texU = texU / 4294967296.0;
-                    }
-                    if (texV < 61440.0) {
-                        texV /= uvSize;
-                    } else {
-                        texV = texV / 4294967296.0;
-                    }
-                }
+                const float texU = shendk::DecodeMt5Uv(u, isUVH, static_cast<uint16_t>(uvSize));
+                const float texV = shendk::DecodeMt5Uv(v, isUVH, static_cast<uint16_t>(uvSize));
                 face.texcoordIndices.push_back(mesh->vertexBuffer().texcoords.size());
                 mesh->vertexBuffer().texcoords.push_back(Vector2f(texU, texV));
             }
@@ -197,7 +190,7 @@ void InStrip::_read(std::istream& stream) {
             if (color) {
                 BGRA bgra;
                 stream.read(reinterpret_cast<char*>(&bgra), sizeof(BGRA));
-                Vector4f color(bgra.b, bgra.g, bgra.r, bgra.a);
+                Vector4f color(bgra.r, bgra.g, bgra.b, bgra.a);
                 color /= 255.0f;
                 face.colorIndices.push_back(mesh->vertexBuffer().colors.size());
                 mesh->vertexBuffer().colors.push_back(color);
@@ -205,6 +198,8 @@ void InStrip::_read(std::istream& stream) {
         }
 
         // triangle_strip to triangles
+        if (!emit || stripLength < 3)
+            continue;
         face.convertToTriangles();
 
         mesh->surfaces.push_back(face);

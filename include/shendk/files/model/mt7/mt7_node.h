@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shendk/types/model.h"
+#include "shendk/files/model/mt7_reader.h"
 
 namespace shendk {
 	namespace mt7 {
@@ -13,6 +14,9 @@ namespace shendk {
 			unsigned int ParentOffset;
 
 			bool HasMesh = false;
+
+            int64_t sourceBaseOffset = 0;
+            shendk::Mt7Node data{};
 
 			MT7Node(Model* model, MT7Node* parent = nullptr);
 			MT7Node(Model* model, std::istream& stream, int64_t baseOffset, MT7Node* parent = nullptr);

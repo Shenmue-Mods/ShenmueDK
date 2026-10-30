@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shendk/files/model_file.h"
+#include "shendk/files/model/mt5_reader.h"
 #include "shendk/files/model/mt5/ptrl.h"
 #include "shendk/files/model/mt5/texl.h"
 #include "shendk/files/model/mt5/texd.h"
@@ -13,7 +14,7 @@ namespace shendk {
  * @brief SM1 model container file
  */
 struct MT5 : public ModelFile {
-    const static uint32_t signature = 1296257608;
+    const static uint32_t signature = MT5_HRCM;
     static bool cleanMeshOnLoad;
 
     struct Header {

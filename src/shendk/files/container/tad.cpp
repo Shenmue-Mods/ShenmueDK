@@ -1,4 +1,8 @@
 #include "shendk/files/container/tad.h"
+#include "shendk/files/container/tad_reader.h"
+#include <array>
+#include <cstring>
+#include <stdexcept>
 
 
 #include "shendk/utils/murmurhash2.h"
@@ -12,152 +16,101 @@ TAD::TAD(const std::string& filepath) {
     read(filepath);
 }
 
-TAD::~TAD() 
-{
-    if (tac_memory) 
-    {
+TAD::~TAD() {
+    if (tac_memory) {
         tac_memory->CloseSharedMemory();
+        delete tac_memory;
     }
 }
 
-std::vector<char> TAD::readAsset(const std::string& tacFilepath, const std::string& assetPath)
-{
-    std::vector<char> fileBuffer;
+std::vector<char> TAD::readAsset(const std::string& tacFilepath, const std::string& assetPath) {
     if (tacFilepath.empty() || assetPath.empty())
-        return fileBuffer;
-
-    std::ifstream tadFile;
-    tadFile.open(tacFilepath, std::ios::binary);
-
-    HashDB& db = HashDB::getInstance();
-    for (const auto& entry : entries) {
-        std::string entryPath = db.getFilepath(entry.hash1, entry.hash2);
-        if (!entryPath.empty() && assetPath == entryPath)
-        {
-            fileBuffer.resize(entry.fileSize);
-
-            tadFile.seekg(entry.fileOffset);
-            tadFile.read((char*)fileBuffer.data(), entry.fileSize);
-            tadFile.close();
-
-            return fileBuffer;
+        return {};
+    const uint64_t hash = shendk::GetPathHash(assetPath);
+    const Entry *selected = nullptr;
+    for (const Entry &entry : entries) {
+        if (entry.hash1 == static_cast<uint32_t>(hash >> 32) && entry.hash2 == static_cast<uint32_t>(hash)) {
+            selected = &entry;
+            break;
         }
     }
-    return fileBuffer;
-}
-
-std::vector<char> TAD::openAsset(const std::string& assetPath, const std::string& tacFilepath)
-{
-    std::vector<char> result;
-    bool memoryMapped = false;
-
-    if (tacFilepath.empty() && assetPath.empty())
-        return result;
-    if (tac_memory)
-        memoryMapped = true;
-    
-    // we can try and initialize the memory in here..
-    if (!memoryMapped) {
-        std::ifstream tacFile;
-        tacFile.open(tacFilepath, std::ios::binary);
-        tacFile.seekg(0, std::ios::beg);
-        if (tacFile.is_open()) {
-            tac_memory = new sharedmem();
-            if (tac_memory) {
-                tacFile.seekg(0, std::ios::end);
-                int size = (int)tacFile.tellg();
-                tacFile.seekg(0, std::ios::beg);
-
-                std::string name = std::filesystem::path(tacFilepath).filename().string();
-                if (tac_memory->CreateMappedMemory(name, size)) {
-                    std::vector<char> tacData = std::vector<char>(size);
-                    tacFile.read(reinterpret_cast<char*>(tacData.data()), size);
-                    tacData.resize(tacFile.gcount());
-
-                    tac_memory->WriteFileData(tacData);
-
-                    tacData.clear();
-                    memoryMapped = true;
-                }
-            }
-            tacFile.close();
-        }
-    }
-
-    HashDB& db = HashDB::getInstance();
-    for (auto& entry : entries) {
-        std::string entryPath = db.getFilepath(entry.hash1, entry.hash2);
-        if (assetPath == entryPath) 
-        {
-            if (!memoryMapped) 
-            {
-                std::ifstream tacFile;
-                tacFile.open(tacFilepath, std::ios::binary);
-                tacFile.seekg(0, std::ios::beg);
-                if (tacFile.is_open())
-                {
-                    tacFile.seekg(entry.fileOffset);
-
-                    result = std::vector<char>(entry.fileSize);
-                    tacFile.read(reinterpret_cast<char*>(result.data()), entry.fileSize);
-                    result.resize(tacFile.gcount());
-
-                    tacFile.close();
-                    return result;
-                }
-            }
-            else
-            {
-                result = std::vector<char>(entry.fileSize);
-                std::memcpy(result.data(), (void*)(tac_memory->SharedMemoryData + entry.fileOffset), entry.fileSize);
-                result.resize(entry.fileSize);
+    if (!selected) {
+        HashDB &db = HashDB::getInstance();
+        for (const Entry &entry : entries) {
+            if (assetPath == db.getFilepath(entry.hash1, entry.hash2)) {
+                selected = &entry;
+                break;
             }
         }
     }
+    if (!selected)
+        return {};
+    shendk::TadEntry entry;
+    static_assert(sizeof(entry) == sizeof(*selected));
+    std::memcpy(&entry, selected, sizeof(entry));
+    std::ifstream input(tacFilepath, std::ios::binary);
+    std::vector<char> result(entry.fileSize);
+    if (!shendk::ReadTacAsset(input, entry, 0, std::as_writable_bytes(std::span(result))))
+        return {};
     return result;
 }
 
-bool TAD::extract(const std::string& tacFilepath, const std::string& outputFolder) {
-    if (!fs::exists(tacFilepath)) return false;
-    fs::path dir(outputFolder);
-    fs::create_directories(dir);
+std::vector<char> TAD::openAsset(const std::string& assetPath, const std::string& tacFilepath) {
+    return readAsset(tacFilepath, assetPath);
+}
 
-    std::ifstream inStream;
-    std::ofstream outStream;
-    inStream.open(tacFilepath, std::ios::binary);
-    HashDB& db = HashDB::getInstance();
-    uint32_t idx = 0;
-    for (auto& entry : entries) {
-        std::string filepath = db.getFilepath(entry.hash1, entry.hash2);
-        if (filepath.empty()) {
-            filepath = std::to_string(idx);
-        }
-        fs::path fullPath(dir);
-        fullPath /= fs::path(filepath).make_preferred().relative_path();
-        fs::create_directories(fullPath.parent_path());
-        char* buffer = new char[entry.fileSize]; // TODO: allocation per entry is kinda slow, maybe use shared buffer.
-        outStream.open(fullPath, std::ios::binary);
-        inStream.seekg(entry.fileOffset);
-        inStream.read(buffer, entry.fileSize);
-        outStream.write(buffer, entry.fileSize);
-        outStream.close();
-        delete[] buffer;
-        ++idx;
+bool TAD::extract(const std::string& tacFilepath, const std::string& outputFolder) {
+    std::ifstream input(tacFilepath, std::ios::binary);
+    if (!input)
+        return false;
+    fs::path directory(outputFolder);
+    fs::create_directories(directory);
+    HashDB &db = HashDB::getInstance();
+    uint32_t index = 0;
+    for (const Entry &source : entries) {
+        std::string name = db.getFilepath(source.hash1, source.hash2);
+        if (name.empty())
+            name = std::to_string(index);
+        fs::path relative = fs::path(name).make_preferred().relative_path().lexically_normal();
+        for (const fs::path &component : relative)
+            if (component == "..")
+                return false;
+        const fs::path destination = directory / relative;
+        fs::create_directories(destination.parent_path());
+        shendk::TadEntry entry;
+        std::memcpy(&entry, &source, sizeof(entry));
+        std::vector<char> data(entry.fileSize);
+        if (!shendk::ReadTacAsset(input, entry, 0, std::as_writable_bytes(std::span(data))))
+            return false;
+        std::ofstream output(destination, std::ios::binary);
+        output.write(data.data(), static_cast<std::streamsize>(data.size()));
+        if (!output)
+            return false;
+        ++index;
     }
-    inStream.close();
     return true;
 }
 
 void TAD::_read(std::istream& stream) {
-    stream.read(reinterpret_cast<char*>(&header), sizeof(Header));
-    stream.seekg(4, std::ios::cur); // Skip duplicate file count..
-
-    for (int i = 0; i < header.fileCount; i++)
-    {
-        TAD::Entry entry;
-        stream.read(reinterpret_cast<char*>(&entry), sizeof(TAD::Entry));
-        entries.push_back(entry);
-    }
+    entries.clear();
+    header = {};
+    std::array<std::byte, 60> raw;
+    stream.read(reinterpret_cast<char *>(raw.data()), raw.size());
+    shendk::TadHeader decoded;
+    if (!stream || !shendk::ReadTadHeader(raw, decoded))
+        throw std::runtime_error("Invalid TAD header");
+    std::memcpy(&header, raw.data(), sizeof(header));
+    const std::streampos entryBegin = stream.tellg();
+    stream.seekg(0, std::ios::end);
+    const std::streampos end = stream.tellg();
+    if (entryBegin < 0 || end < entryBegin || decoded.entryCount > static_cast<uint64_t>(end - entryBegin) / sizeof(Entry))
+        throw std::runtime_error("Truncated TAD entry table");
+    stream.seekg(entryBegin);
+    entries.resize(decoded.entryCount);
+    if (!entries.empty())
+        stream.read(reinterpret_cast<char *>(entries.data()), static_cast<std::streamsize>(entries.size() * sizeof(Entry)));
+    if (!stream)
+        throw std::runtime_error("Truncated TAD entry table");
 }
 
 void TAD::_write(std::ostream& stream) {

@@ -4,6 +4,7 @@
 #include "shendk/utils/math.h"
 
 #include <iostream>
+#include <stdexcept>
 
 namespace shendk {
 namespace mt5 {
@@ -24,12 +25,16 @@ MT5Node::MT5Node(Model* model, std::istream& stream, int64_t baseOffset, MT5Node
 MT5Node::~MT5Node() {}
 
 void MT5Node::read(std::istream& stream , int64_t baseOffset) {
+    sourceBaseOffset = baseOffset;
     stream.read(reinterpret_cast<char*>(&data), sizeof(MT5Node::Data));
+    if (!stream)
+        throw std::runtime_error("Truncated MT5 node");
 
     id = data.id;
     position = Vector3f(data.posX, data.posY, data.posZ);
     scale = Vector3f(data.sclX, data.sclY, data.sclZ);
-    rotation = Vector3f(ushortToDegrees(data.rotX), ushortToDegrees(data.rotY), ushortToDegrees(data.rotZ));
+    rotation = Vector3f(shortToDegrees(static_cast<int16_t>(data.rotX)), shortToDegrees(static_cast<int16_t>(data.rotY)),
+        shortToDegrees(static_cast<int16_t>(data.rotZ)));
     name = std::string(data.name, 4);
 
     // read mesh data

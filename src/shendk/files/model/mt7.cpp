@@ -1,80 +1,73 @@
 #include "shendk/files/model/mt7.h"
+#include "shendk/files/model/mt7_reader.h"
 
-#include "shendk/files/model/mt7/mt7_node.h"
+#include <cstring>
+#include <stdexcept>
 
-namespace shendk {
-    namespace mt7 {
-        MT7::MT7() = default;
+namespace shendk::mt7 {
 
-        MT7::MT7(const std::string& filepath) {
-            read(filepath);
-        }
+MT7::MT7() = default;
+MT7::MT7(const std::string &filepath) { read(filepath); }
 
-        void TexEntry::Read(std::istream& stream)
-        {
-            stream.read(reinterpret_cast<char*>(&Width), 4);
-            stream.read(reinterpret_cast<char*>(&Height), 4);
-            stream.read(reinterpret_cast<char*>(&Unknown1), 4);
-            stream.read(reinterpret_cast<char*>(&Unknown2), 4);
-            stream.read(reinterpret_cast<char*>(&Index), 4);
-        }
-
-        void MT7::_read(std::istream& stream) {
-            Offset = static_cast<int>(stream.tellg());
-            stream.seekg(Offset, std::ios::beg);
-
-            // Read header..
-            stream.read(reinterpret_cast<char*>(&header), sizeof(MT7::Header));
-            if (!isValid(header.signature)) {
-                return;
-            }
-
-            printf("size = %d\n", header.size);
-            printf("textureCount = %d\n", header.textureCount);
-            printf("firstNodeOffset = %d\n", header.firstNodeOffset);
-
-            // Read texture entries if there are any
-            for (int i = 0; i < header.textureCount; ++i) {
-                TexEntry tmp = TexEntry();
-                tmp.Read(stream);
-                TextureEntries.push_back(tmp);
-            }
-
-            for (auto texEntry : TextureEntries) {
-                stream.read(reinterpret_cast<char*>(&texEntry.TextureID.id), 8);
-            }
-
-            //If we are not at the first node yet, we still have an node offset table to read
-            if (static_cast<int>(stream.tellg()) != header.firstNodeOffset)
-            {
-                stream.read(reinterpret_cast<char*>(&NodeOffsetTableSize), 4);
-                for (int i = 0; i < NodeOffsetTableSize; i++)
-                {
-                    unsigned int tmp = 0;
-                    stream.read(reinterpret_cast<char*>(&tmp), 4);
-                    NodeOffsetTable.push_back(tmp);
-                }
-            }
-
-            //Read first node and as an result create the whole node tree structure
-            auto newOfs = Offset + header.firstNodeOffset;
-            stream.seekg(newOfs, std::ios::beg);
-            model.rootNode = std::shared_ptr<ModelNode>(new MT7Node(&model, stream, baseOffset));
-            printf("Created root node\n");
-        }
-
-        void MT7::_write(std::ostream& stream) {
-            stream.write(reinterpret_cast<char*>(&header), sizeof(MT7::Header));
-        }
-
-        bool MT7::_isValid(uint32_t signature) {
-            for (auto identifier : identifiers) {
-                if (signature == identifier) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-    }
+void TexEntry::Read(std::istream &stream) {
+    stream.read(reinterpret_cast<char *>(&Width), sizeof(Width));
+    stream.read(reinterpret_cast<char *>(&Height), sizeof(Height));
+    stream.read(reinterpret_cast<char *>(&Unknown1), sizeof(Unknown1));
+    stream.read(reinterpret_cast<char *>(&Unknown2), sizeof(Unknown2));
+    stream.read(reinterpret_cast<char *>(&Index), sizeof(Index));
+    if (!stream)
+        throw std::runtime_error("Truncated MT7 texture record");
 }
+
+void MT7::_read(std::istream &stream) {
+    model = {};
+    RootNode = nullptr;
+    TextureEntries.clear();
+    NodeOffsetTable.clear();
+    NodeOffsetTableSize = 0;
+    stream.seekg(0, std::ios::end);
+    const std::streamoff end = stream.tellg();
+    if (baseOffset < 0 || end < baseOffset)
+        throw std::runtime_error("Invalid MT7 input range");
+    std::vector<std::byte> storage(static_cast<size_t>(end - baseOffset));
+    stream.seekg(baseOffset, std::ios::beg);
+    stream.read(reinterpret_cast<char *>(storage.data()), static_cast<std::streamsize>(storage.size()));
+    shendk::Bytes bytes;
+    shendk::Mt7Header decoded;
+    if (!stream || !shendk::FindMt7Model(storage, bytes) || !shendk::ReadMt7Header(bytes, decoded))
+        throw std::runtime_error("Invalid MT7 header");
+    Offset = static_cast<unsigned int>(baseOffset + (bytes.data() - storage.data()));
+    std::memcpy(&header, &decoded, sizeof(header));
+    for (uint32_t index = 0; index < header.textureCount; ++index) {
+        shendk::Mt7Texture texture;
+        if (!shendk::ReadMt7Texture(bytes, decoded, index, texture))
+            throw std::runtime_error("Invalid MT7 texture table");
+        TexEntry entry{};
+        entry.Width = texture.width;
+        entry.Height = texture.height;
+        entry.Unknown1 = texture.unknown04;
+        entry.Unknown2 = texture.unknown08;
+        entry.Index = texture.textureIndex;
+        std::memcpy(&entry.TextureID.id, texture.id.data(), texture.id.size());
+        TextureEntries.push_back(entry);
+    }
+    const uint64_t tableEnd = 16ULL + static_cast<uint64_t>(header.textureCount) * 24;
+    if (tableEnd < header.firstNodeOffset) {
+        if (!shendk::Contains(bytes, tableEnd, 4))
+            throw std::runtime_error("Invalid MT7 node offset table");
+        std::memcpy(&NodeOffsetTableSize, bytes.data() + tableEnd, sizeof(NodeOffsetTableSize));
+        if (!shendk::Contains(bytes, tableEnd + 4, static_cast<uint64_t>(NodeOffsetTableSize) * 4))
+            throw std::runtime_error("Invalid MT7 node offset table");
+        NodeOffsetTable.resize(NodeOffsetTableSize);
+        if (!NodeOffsetTable.empty())
+            std::memcpy(NodeOffsetTable.data(), bytes.data() + tableEnd + 4, NodeOffsetTable.size() * 4);
+    }
+    stream.seekg(static_cast<std::streamoff>(Offset) + header.firstNodeOffset, std::ios::beg);
+    model.rootNode = std::make_shared<MT7Node>(&model, stream, Offset);
+    RootNode = static_cast<MT7Node *>(model.rootNode.get());
+}
+
+void MT7::_write(std::ostream &) { throw std::runtime_error("MT7 writing is not implemented"); }
+bool MT7::_isValid(uint32_t signature) { return shendk::IsMt7Signature(signature); }
+
+} // namespace shendk::mt7

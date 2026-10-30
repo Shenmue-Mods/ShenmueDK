@@ -1,5 +1,4 @@
-cmake_minimum_required (VERSION 3.8.0)
-set(CMAKE_VERBOSE_MAKEFILE on)
+cmake_minimum_required (VERSION 3.22)
 
 project (ShenmueDK LANGUAGES CXX DESCRIPTION "Shenmue I & II HD Modding SDK for C++")
 
@@ -9,29 +8,43 @@ set(SHENDK_VERSION_MAJOR 0)
 set(SHENDK_VERSION_MINOR 1)
 set(SHENDK_VERSION_BUILD 0)
 
-# c++ stuff
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_DEBUG_POSTFIX d)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-	message("GCC")
-	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0")
-	set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	message("MSVC")
-	set(CMAKE_CXX_FLAGS_RELEASE "/O2")
-	set(CMAKE_CXX_FLAGS_DEBUG "/O1")
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-	message("Clang")
-	set(CMAKE_CXX_FLAGS_RELEASE "-O3 -g0")
-	set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3")
-else()
-	message(FATAL_ERROR "No support for this compiler yet!")
-endif()
-
 # options
-option(BUILD_TESTS "Build test programs" ON)
+option(BUILD_TESTS "Build legacy test programs" OFF)
 option(BUILD_STATIC "Build shendk static library" ON)
 option(BUILD_SHARED "Build shendk shared library" OFF)
+option(SHENDK_BUILD_LEGACY_FORMATS "Include legacy model/image exporters and their external dependencies" OFF)
+option(SHENDK_BUILD_FORMAT_TESTS "Build portable format-reader checks" OFF)
+
+set(SHENDK_CORE_SOURCES
+    src/shendk/files/container/tad_reader.cpp
+    src/shendk/files/model/mt5_reader.cpp
+    src/shendk/files/model/mt7_reader.cpp
+    src/shendk/files/animation/motn_reader.cpp
+    src/shendk/utils/path_hash.cpp
+    src/shendk/utils/murmurhash2.cpp
+)
+if(BUILD_STATIC)
+    add_library(${SHENDK_STATIC_LIB_NAME} STATIC ${SHENDK_CORE_SOURCES})
+    target_compile_features(${SHENDK_STATIC_LIB_NAME} PUBLIC cxx_std_20)
+    target_include_directories(${SHENDK_STATIC_LIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    set_target_properties(${SHENDK_STATIC_LIB_NAME} PROPERTIES DEBUG_POSTFIX d)
+endif()
+if(BUILD_SHARED)
+    add_library(${SHENDK_LIB_NAME} SHARED ${SHENDK_CORE_SOURCES})
+    target_compile_features(${SHENDK_LIB_NAME} PUBLIC cxx_std_20)
+    target_include_directories(${SHENDK_LIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+    set_target_properties(${SHENDK_LIB_NAME} PROPERTIES DEBUG_POSTFIX d WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+if(SHENDK_BUILD_FORMAT_TESTS)
+    if(NOT BUILD_STATIC)
+        message(FATAL_ERROR "SHENDK_BUILD_FORMAT_TESTS requires BUILD_STATIC")
+    endif()
+    add_executable(shendk_format_checks tests/format_readers.cpp)
+    target_link_libraries(shendk_format_checks PRIVATE ${SHENDK_STATIC_LIB_NAME})
+endif()
+if(NOT SHENDK_BUILD_LEGACY_FORMATS)
+    return()
+endif()
 
 # dependencies
 if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "8.0.0")
@@ -81,10 +94,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 file(GLOB_RECURSE HEADERS include/*.h include/*.hpp)
 file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.h src/*.hpp)
+foreach(SHENDK_CORE_SOURCE IN LISTS SHENDK_CORE_SOURCES)
+    list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/${SHENDK_CORE_SOURCE}")
+endforeach()
 
 # shendk shared library
 if (BUILD_SHARED)
-    add_library(${SHENDK_LIB_NAME} SHARED ${SOURCES} ${HEADERS})
+    target_sources(${SHENDK_LIB_NAME} PRIVATE ${SOURCES} ${HEADERS})
     target_include_directories(${SHENDK_LIB_NAME}
         PUBLIC include
         PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}
@@ -103,7 +119,7 @@ endif()
 
 # shendk static library
 if (BUILD_STATIC)
-    add_library(${SHENDK_STATIC_LIB_NAME} STATIC ${SOURCES} ${HEADERS})
+    target_sources(${SHENDK_STATIC_LIB_NAME} PRIVATE ${SOURCES} ${HEADERS})
     target_include_directories(${SHENDK_STATIC_LIB_NAME}
         PUBLIC include
         PRIVATE src ${CMAKE_CURRENT_BINARY_DIR}

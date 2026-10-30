@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shendk/files/model_file.h"
+#include "shendk/files/model/mt7_reader.h"
 #include "shendk/files/model/mt7/mt7_node.h"
 
 namespace shendk {
@@ -12,7 +13,7 @@ namespace shendk {
             unsigned int Unknown1;
             unsigned int Unknown2;
             unsigned int Index;
-            TextureID TextureID;
+            shendk::TextureID TextureID;
 
             void Read(std::istream& stream);
         };
@@ -23,14 +24,14 @@ namespace shendk {
         struct MT7 : public ModelFile {
 
             static constexpr const uint32_t identifiers[8] = {
-                1480803405,   //MDCX
-                927155277,    //MDC7
-                1481655373,   //MDPX
-                928007245,    //MDP7
-                1481589837,   //MDOX
-                927941709,    //MDO7
-                1481393229,   //MDLX
-                927745101     //MDL7
+                MT7_MDCX,   //MDCX
+                MT7_MDC7,    //MDC7
+                MT7_MDPX,   //MDPX
+                MT7_MDP7,    //MDP7
+                MT7_MDOX,   //MDOX
+                MT7_MDO7,    //MDO7
+                MT7_MDLX,   //MDLX
+                MT7_MDL7     //MDL7
             };
 
             struct Header {
@@ -45,9 +46,9 @@ namespace shendk {
                 float posX;
                 float posY;
                 float posZ;
-                uint32_t rotX; // degX = rotX / 0xFFFF * 360.0f
-                uint32_t rotY; // degY = rotY / 0xFFFF * 360.0f
-                uint32_t rotZ; // degZ = rotZ / 0xFFFF * 360.0f
+                int32_t rotX;
+                int32_t rotY;
+                int32_t rotZ;
                 float sclX;
                 float sclY;
                 float sclZ;
